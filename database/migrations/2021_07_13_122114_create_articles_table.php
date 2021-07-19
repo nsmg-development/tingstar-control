@@ -17,12 +17,14 @@ class CreateArticlesTable extends Migration
             $table->id();
             $table->unsignedBigInteger('media_id')->comment('매체 id');
             $table->string('platform', 25)->comment('수집 대상: instagram, facebook, youtube, tiktok 등');
+            $table->string('type', 25)->comment('수집 타입: keyword, channel');
             $table->string('keyword')->nullable()->comment('수집 키워드');
-            $table->string('url')->comment('원본 url');
+            $table->string('channel')->nullable()->comment('수집 채널');
+            $table->text('url')->unique()->comment('원본 url');
             $table->string('title')->comment('제목');
-            $table->string('contents')->comment('내용');
-            $table->string('thumbnail_url')->nullable()->comment('썸네일 url');
-            $table->string('hashtag')->nullable()->comment('해시태그');
+            $table->text('contents')->comment('내용');
+            $table->text('thumbnail_url')->nullable()->comment('썸네일 url');
+            $table->text('hashtag')->nullable()->comment('해시태그');
             $table->boolean('state')->default(false)->comment('노출 여부(0:비노출, 1:노출)');
             $table->datetime('date')->comment('게시일자');
             $table->timestamps();

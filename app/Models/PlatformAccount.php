@@ -14,8 +14,13 @@ class PlatformAccount extends Model
         'created_at', 'updated_at'
     ];
 
+    public function scopeActive($query)
+    {
+        return $query->where('state', true);
+    }
+
     public function platform(): HasOne
     {
-        return $this->hasOne(Platform::class);
+        return $this->hasOne(Platform::class, 'id', 'platform_id');
     }
 }

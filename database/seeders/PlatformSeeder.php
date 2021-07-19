@@ -20,7 +20,7 @@ class PlatformSeeder extends Seeder
             ['platform' => 'facebook'],
             ['platform' => 'tiktok'],
             ['platform' => 'youtube'],
-            ['platform' => 'blog'],
+            ['platform' => 'naver-blog'],
             ['platform' => 'twitter'],
         ];
 

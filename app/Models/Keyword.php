@@ -12,4 +12,9 @@ class Keyword extends Model
     protected $hidden = [
         'created_at', 'updated_at'
     ];
+
+    public function scopeActive($query, $platform)
+    {
+        return $query->where(['state' => true, 'platform' => $platform]);
+    }
 }

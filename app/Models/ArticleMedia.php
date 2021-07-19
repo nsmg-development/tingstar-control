@@ -9,6 +9,12 @@ class ArticleMedia extends Model
 {
     use HasFactory;
 
+    protected $table = 'article_medias';
+
+    protected $fillable = [
+        'article_id', 'type', 'url', 'width', 'height'
+    ];
+
     protected $hidden = [
         'created_at', 'updated_at'
     ];
