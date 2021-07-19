@@ -2,12 +2,17 @@
 
 namespace App\Console\Commands;
 
-use App\Board;
-use App\Lib\Util;
+use App\Enums\ArticleMediaType;
+use App\Enums\ArticleType;
+use App\Enums\PlatformEnum;
+use App\Models\Article;
+use App\Models\ArticleMedia;
+use App\Models\Keyword;
+use App\Services\InstagramService;
+use Carbon\Carbon;
+use GuzzleHttp\Client;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
-use InstagramScraper\Model\Media;
 
 class Instagram extends Command
 {
@@ -16,7 +21,7 @@ class Instagram extends Command
      *
      * @var string
      */
-    protected $signature = 'crawler:instagram';
+    protected $signature = 'scrap:instagram';
 
     /**
      * The console command description.
@@ -25,135 +30,133 @@ class Instagram extends Command
      */
     protected $description = 'Command description';
 
+    protected PlatformEnum $platformEnum;
+    protected InstagramService $instagramService;
+    protected Article $article;
+    protected ArticleMedia $articleMedia;
+    protected Keyword $keyword;
+    protected string $maxId = '';
+
     /**
      * Create a new command instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(
+        PlatformEnum $platformEnum,
+        InstagramService $instagramService,
+        Article $article,
+        ArticleMedia $articleMedia,
+        Keyword $keyword
+    )
     {
         parent::__construct();
+
+        $this->platformEnum = $platformEnum;
+        $this->instagramService = $instagramService;
+        $this->article = $article;
+        $this->articleMedia = $articleMedia;
+        $this->keyword = $keyword;
     }
 
     /**
      * Execute the console command.
      *
-     * @return int
      */
     public function handle()
     {
-        $artist_id = $this->artistsId;
-        $names = \DB::table('artists')->where('id',$artist_id)->get();
+        $client = new Client();
 
-        foreach ($names as $name) {
-            $country = \DB::table('countries')->where('name', $name->name)->get();
-            $instagram = new \InstagramScraper\Instagram();
-            $instagramPageObj = $instagram->getPaginateMediasByTag($name->name."여행");
-            $instagramPageObj['hasNextPage'] = true;
+        // 인스타그램 로그인 계정 DB 참조
+        $platformAccount = $this->instagramService->getPlatformAccount($this->platformEnum::INSTAGRAM, 0);
+        if (!$platformAccount) {
+            Log::error("not found available platform account");
+            return false;
+        }
 
-            $cnt =0;
+        $login_id = $platformAccount->login_id;
+        $login_password = $platformAccount->login_password;
 
-            while ($instagramPageObj['hasNextPage'] === true) {
-                if(!empty($instagramPageObj['medias'])) {
-                    foreach ($instagramPageObj['medias'] as $key => $media) {
-                        Log::info(__METHOD__.' - media - '.json_encode($media));
-                        $cnt++;
-                        $duplicationCheck = $this->isValidation( $media);
-                        if (!empty($duplicationCheck) || $cnt > 30) {
-                            $instagramPageObj['hasNextPage'] = false;
-                            break 2;
+        // 키워드 정보 가져오기
+        $keywords = $this->keyword->active(PlatformEnum::INSTAGRAM)->get();
+
+        // 키워드 정보 가져오기 오류 발생
+        if (!$keywords) {
+            Log::error("not found available keywords");
+            return false;
+        }
+
+        // 스크래핑 헤더 캐싱
+        $headers = $this->instagramService->initInstagram($login_id, $login_password);
+
+        // 로그인 헤더 생성 오류 발생
+        if (count($headers) === 0) {
+            Log::error("Init instagram headers fail");
+            return false;
+        }
+
+        foreach($keywords as $keyword) {
+            $keyword = $keyword->keyword;
+
+            // 최근 게시물로(recent nodes) 부터 반복하여 스크래핑 처리
+            do {
+                $scraped = $this->instagramService->requestInstagram($headers, $keyword, $this->maxId);
+
+                $result = $this->instagramService->getInstagram($keyword, $scraped);
+
+                if (count($result) === 0) {
+                    Log::error('no data!');
+                    break;
+                }
+                $this->maxId = $result['maxId'];
+                $nodes = $result['medias'];
+
+                foreach ($nodes as $node) {
+                    try {
+                        $article = $this->article->where([
+                            'media_id' => 1,
+                            'url' => $node->getUrl()
+                        ])->first();
+
+                        if (!$article) {
+                            $article = $this->article->create([
+                                'media_id' => 1,
+                                'platform' => PlatformEnum::INSTAGRAM,
+                                'url' => $node->getUrl(),
+                                'type' => ArticleType::KEYWORD,
+                                'keyword' => $keyword,
+                                'title' => '',
+                                'contents' => $node->getCaption(),
+                                'thumbnail_url' => '',
+                                'hashtag' => $node->getHashTag(),
+                                'state' => 0,
+                                'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
+                            ]);
+
+                            if ($node->getImageUrl()) {
+                                $this->articleMedia->create([
+                                    'article_id' => $article->id,
+                                    'type' => ArticleMediaType::IMAGE,
+                                    'url' => $node->getImageUrl(),
+                                    'width' => $node->getImageWidth(),
+                                    'height' => $node->getImageHeight(),
+                                ]);
+                            }
                         }
-                        $media = $instagram->getMediaById($media->getId());
-                        if(!$media) continue;
-                        $detailMedias = $media->getSidecarMedias();
 
-                        $board = $this->setDataFormatting($media);
-                        $board['artists_id'] = $this->artistsId;
-                        $board['cou_id'] = $country[0]->id;
-                        parent::saveData($board);
+                        sleep(1);
+                    } catch (\Exception $e) {
+                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                     }
                 }
-                $instagramPageObj = $instagram->getPaginateMedias($this->channelKey, $instagramPageObj['maxId']);
-            }
+
+                $this->info($this->maxId);
+            } while ($this->maxId !== '');
         }
-        Log::info(__METHOD__ . " - Success Process Cnt : " . parent::$successCnt);
+
+        // 계정 사용횟수 업데이트
+        $platformAccount->increments('use_count');
+
         return true;
-    }
-
-    public function isValidation( $channelModal): bool
-    {
-        $chk = Board::where('post', '=', $this->parsingPost($channelModal))->count();
-        return $chk;
-    }
-
-
-    public function parsingPost( $channelModa): string
-    {
-        return '/p/' . $channelModa->getShortCode() . '/';
-    }
-
-
-    public function setDataFormatting( $channelModal): Board
-    {
-        $util = new Util();
-
-        $board = new Board();
-        $board->app = env('APP_NAME');
-        $board->type = $this->channelType;
-        $board->post = $this->parsingPost($channelModal);
-        $board->post_type = $channelModal->getType() ;
-        $board->title = '';
-        $board->contents = $channelModal->getCaption();
-        $board->sns_account = $this->channelKey;
-        $board->gender = 1;
-        $board->state = 0;
-        $board->recorded_at = date('Y-m-d H:i:s', $channelModal->getCreatedTime());
-        $board->created_at = date('Y-m-d H:i:s');
-
-        $data = [];
-        $oriData = [];
-
-        $file = file_get_contents($channelModal->getImageLowResolutionUrl());
-        $thumbnail = $util->AzureUploadImage($channelModal->getImageLowResolutionUrl(), $this->channelImagePath);
-        $board->thumbnail_url = "/" . $this->channelImagePath . $thumbnail['fileName'];
-        $board->thumbnail_w = (int)$thumbnail['width'];
-        $board->thumbnail_h = (int)$thumbnail['height'];
-        $board->ori_thumbnail = $channelModal->getImageLowResolutionUrl();
-
-        //media 값이 비어서 올때가 있다
-        if($board->post_type == 'image'){
-            $data[0]['image'] = $board->thumbnail_url;
-        }else{
-            $data[0]['video']['poster'] = $board->thumbnail_url;
-        }
-
-        $detailMedias = $channelModal->getSidecarMedias();
-
-        foreach ($detailMedias as $detailMediaKey => $detailMedia) {
-            $oriData[] = $detailMedia->getImageLowResolutionUrl();
-            if ($detailMedia->getType() === Media::TYPE_IMAGE) {
-                $thumbnail = $util->AzureUploadImage($detailMedia->getImageLowResolutionUrl(), $this->channelImagePath);
-                $data[$detailMediaKey]['image'] = "/" . $this->channelImagePath . $thumbnail['fileName'];
-            } else {
-                if ($detailMedia->getType() === Media::TYPE_VIDEO) {
-
-                    if ($detailMediaKey == 0) {
-                        unset($data[0]['image']);
-                    }
-
-                    $thumbnail = $util->AzureUploadImage($detailMedia->getImageLowResolutionUrl(),
-                        $this->channelViedeoPath);
-                    $data[$detailMediaKey]['video']['poster'] = "/" . $this->channelImagePath . $thumbnail['fileName'];
-
-                    //$thumbnail = $util->AzureUploadImage($detailMedia->getVideoStandardResolutionUrl(), $this->channelViedeoPath);
-                    //$data[$detailMediaKey]['video']['src'] = "/" .$this->channelViedeoPath. $thumbnail['fileName'];
-                }
-            }
-        }
-
-        $board->data = $data;
-        $board->ori_data = $oriData;
-
-        return $board;
     }
 }

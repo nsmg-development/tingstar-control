@@ -1,5 +1,6 @@
 <?php
 
+use CMDISP\MonologMicrosoftTeams\TeamsLogChannel;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -37,8 +38,15 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single'],
+            'channels' => ['daily', 'teams'],
             'ignore_exceptions' => false,
+        ],
+
+        'teams' => [
+            'driver' => 'custom',
+            'via' => TeamsLogChannel::class,
+            'level' => 'error',
+            'url' => env('TEAMS_INCOMING_WEBHOOK_URL'),
         ],
 
         'single' => [
