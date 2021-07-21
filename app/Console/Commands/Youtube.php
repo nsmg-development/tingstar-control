@@ -65,6 +65,7 @@ class Youtube extends Command
     public function handle()
     {
         $keywords = $this->keyword->active(PlatformEnum::YOUTUBE)->get();
+
         // 키워드 정보 가져오기 오류 발생
         if (!$keywords) {
             Log::error("not found available keywords");
@@ -73,14 +74,19 @@ class Youtube extends Command
 
         foreach ($keywords as $keyword) {
             $keyword = $keyword->keyword;
+
             do{
                 $result = $this->youtubeService->getYoutube($keyword);
+
+                // 유튜브 데이터 없는 경우 오류 출력
                 if (count($result) === 0) {
                     Log::error('no data!');
                     break;
                 }
+
                 $this->nextPageToken = $result['nextPageToken'];
                 $nodes = $result['medias'];
+
                 foreach ($nodes as $node) {
                     try {
                         $article = $this->article->where([
@@ -119,8 +125,12 @@ class Youtube extends Command
                     } catch (\Exception $e) {
                         Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                     }
-                } $this->info($this->nextPageToken);
+                }
+
+                $this->info($this->nextPageToken);
             } while ($this->nextPageToken !== '');
         }
+
+        return true;
     }
 }

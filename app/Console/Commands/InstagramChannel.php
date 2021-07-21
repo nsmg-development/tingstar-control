@@ -14,14 +14,6 @@ use Illuminate\Support\Facades\Log;
 
 class InstagramChannel extends Command
 {
-    protected InstagramService $instagramService;
-
-    protected Channel $channel;
-    protected Article $article;
-    protected ArticleMedia $articleMedia;
-
-    protected string $maxId = '';
-
     /**
      * The name and signature of the console command.
      *
@@ -35,6 +27,14 @@ class InstagramChannel extends Command
      * @var string
      */
     protected $description = '인스타그램 크롤링(채널별)';
+
+    protected InstagramService $instagramService;
+
+    protected Channel $channel;
+    protected Article $article;
+    protected ArticleMedia $articleMedia;
+
+    protected string $maxId = '';
 
     /**
      * Create a new command instance.
@@ -138,5 +138,6 @@ class InstagramChannel extends Command
                 // $this->info($this->maxId);
             } while ($this->maxId !== '');
         }
+        return true;
     }
 }

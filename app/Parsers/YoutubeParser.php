@@ -4,7 +4,6 @@ namespace App\Parsers;
 
 class YoutubeParser
 {
-
     protected string $title = '';
     protected string $description = '';
     protected string $thumbnailUrl = '';
