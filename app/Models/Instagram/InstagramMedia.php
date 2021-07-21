@@ -2,8 +2,6 @@
 
 namespace App\Models\Instagram;
 
-use InstagramScraper\Endpoints;
-
 /**
  * Class Media
  */
@@ -258,7 +256,7 @@ class InstagramMedia extends AbstractModel
     public static function getLinkFromId(string $id)
     {
         $code = InstagramMedia::getCodeFromId($id);
-        return Endpoints::getMediaPageLink($code);
+        return Endpoint::getMediaPageLink($code);
     }
 
     /**
@@ -600,7 +598,7 @@ class InstagramMedia extends AbstractModel
             case 'shortcode':
             case 'code':
                 $this->shortCode = $value;
-                $this->link = Endpoints::getMediaPageLink($this->shortCode);
+                $this->link = Endpoint::getMediaPageLink($this->shortCode);
                 break;
             case 'link':
                 $this->link = $value;
@@ -836,10 +834,10 @@ class InstagramMedia extends AbstractModel
         $imageName = $parts[sizeof($parts) - 1];
 
         return [
-            'thumbnail' => Endpoints::INSTAGRAM_CDN_URL . 't/s150x150/' . $imageName,
-            'low' => Endpoints::INSTAGRAM_CDN_URL . 't/s320x320/' . $imageName,
-            'standard' => Endpoints::INSTAGRAM_CDN_URL . 't/s640x640/' . $imageName,
-            'high' => Endpoints::INSTAGRAM_CDN_URL . 't/' . $imageName,
+            'thumbnail' => Endpoint::INSTAGRAM_CDN_URL . 't/s150x150/' . $imageName,
+            'low' => Endpoint::INSTAGRAM_CDN_URL . 't/s320x320/' . $imageName,
+            'standard' => Endpoint::INSTAGRAM_CDN_URL . 't/s640x640/' . $imageName,
+            'high' => Endpoint::INSTAGRAM_CDN_URL . 't/' . $imageName,
         ];
     }
 

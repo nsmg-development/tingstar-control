@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ArticleMediaType;
+use App\Models\Instagram\Endpoint;
 use App\Models\Instagram\InstagramMedia;
 use App\Models\PlatformAccount;
 use App\Parsers\InstagramParser;
@@ -20,10 +21,6 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 class InstagramService
 {
-    const BASE_URL = 'https://www.instagram.com';
-    const MEDIA_JSON_BY_TAG = 'https://www.instagram.com/explore/tags/{tag}/?__a=1&max_id={max_id}';
-    const ACCOUNT_MEDIAS = 'https://www.instagram.com/graphql/query/?query_hash=e769aa130647d2354c40ea6a439bfc08&variables={variables}';
-
     protected PlatformAccount $platformAccount;
     protected string $maxId = '';
 
@@ -156,7 +153,7 @@ class InstagramService
      */
     public function requestInstagramByKeyword(array $headers, string $keyword, string $maxId): array
     {
-        $url = str_replace('{tag}', urlencode($keyword), static::MEDIA_JSON_BY_TAG);
+        $url = str_replace('{tag}', urlencode($keyword), Endpoint::MEDIA_JSON_BY_TAG);
         $url = str_replace('{max_id}', urlencode($maxId), $url);
 
         $response = Http::withHeaders($headers)->get($url);
@@ -185,7 +182,7 @@ class InstagramService
                 'after' => $maxId
             ]);
 
-            $url = str_replace('{variables}', urlencode($variables), static::ACCOUNT_MEDIAS);
+            $url = str_replace('{variables}', urlencode($variables), Endpoint::ACCOUNT_MEDIAS);
 
             // $headers = $this->generateHeaders(null, null);
 
@@ -266,7 +263,7 @@ class InstagramService
 
             $headers = [
                 'cookie' => $cookies,
-                'referer' => static::BASE_URL . '/',
+                'referer' => Endpoint::BASE_URL . '/',
                 'x-csrftoken' => $csrf,
             ];
 

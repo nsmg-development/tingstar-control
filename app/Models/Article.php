@@ -11,7 +11,8 @@ class Article extends Model
     use HasFactory;
 
     protected $fillable = [
-        'media_id', 'platform', 'type', 'keyword', 'channel', 'url', 'title', 'contents', 'thumbnail_url', 'hashtag', 'state', 'date'
+        'media_id', 'platform', 'type', 'keyword', 'channel', 'url', 'title', 'contents',
+        'thumbnail_url', 'thumbnail_width', 'thumbnail_height', 'hashtag', 'state', 'date'
     ];
 
     protected $hidden = [
