@@ -2,8 +2,8 @@
 
 namespace App\Enums;
 
-final class ArticleMediaType
+final class ArticleMediaType extends BaseEnum
 {
     const IMAGE = 'image';
-    const MOVIE = 'movie';
+    const VIDEO = 'video';
 }

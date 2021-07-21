@@ -11,6 +11,8 @@ class ArticleMedia extends Model
 
     protected $table = 'article_medias';
 
+    protected $guarded = [];
+
     protected $fillable = [
         'article_id', 'type', 'url', 'width', 'height'
     ];
