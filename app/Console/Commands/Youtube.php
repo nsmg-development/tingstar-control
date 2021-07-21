@@ -2,11 +2,16 @@
 
 namespace App\Console\Commands;
 
-use App\Board;
-use App\Lib\Util;
+use App\Enums\ArticleMediaType;
+use App\Enums\ArticleType;
+use App\Enums\PlatformEnum;
+use App\Models\Article;
+use App\Models\ArticleMedia;
+use App\Models\Keyword;
+use App\Services\YoutubeService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Ixudra\Curl\Facades\Curl;
+use Illuminate\Support\Facades\Log;
 
 class Youtube extends Command
 {
@@ -15,86 +20,107 @@ class Youtube extends Command
      *
      * @var string
      */
-    protected $signature = 'crawler:youtube';
+    protected $signature = 'scrap:youtube';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = '유튜브 크롤링';
+
+    protected PlatformEnum $platformEnum;
+    protected YoutubeService $youtubeService;
+    protected Article $article;
+    protected ArticleMedia $articleMedia;
+    protected Keyword $keyword;
+    protected string $nextPageToken;
 
     /**
      * Create a new command instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(
+        PlatformEnum $platformEnum,
+        YoutubeService $youtubeService,
+        Article $article,
+        ArticleMedia $articleMedia,
+        Keyword $keyword
+    )
     {
         parent::__construct();
+
+        $this->platformEnum = $platformEnum;
+        $this->youtubeService = $youtubeService;
+        $this->article = $article;
+        $this->articleMedia = $articleMedia;
+        $this->keyword = $keyword;
     }
 
     /**
      * Execute the console command.
      *
-     * @return int
      */
     public function handle()
     {
-        $artist_id = $this->artistsId;
-        $names = \DB::table('artists')->where('id',$artist_id)->get(); // object
+        $keywords = $this->keyword->active(PlatformEnum::YOUTUBE)->get();
+        // 키워드 정보 가져오기 오류 발생
+        if (!$keywords) {
+            Log::error("not found available keywords");
+            return false;
+        }
 
-        foreach ($names as $name) {
-            $country = \DB::table('countries')->where('name', $name->name)->get();
-            $key = 'AIzaSyAGHxBptJAXvHYWX2BF9FPKpTYvqBsDRQo';
-//            $key = 'AIzaSyAdBFaHvuTLDILaI8frV1LwQxmCL0Cs6wQ';
-            $option = array(
-                'key' => $key,
-                'part' => 'snippet',
-                'q' => $name->name . "여행",
-                'type' => 'video',
-                'maxResults' => $this->max_results,
-                'order' => 'date',
-            );
-            $call_api = $this->search_url.http_build_query($option, 'a', '&');
-            $response = Curl::to($call_api)->get();
-            $response = json_decode($response, true);
-            foreach ($response['items'] as $item) {
-                $dupleChk = $this->isValidation($item['id']['videoId']);
-                if ($dupleChk > 0) {
-                    continue;
+        foreach ($keywords as $keyword) {
+            $keyword = $keyword->keyword;
+            do{
+                $result = $this->youtubeService->getYoutube($keyword);
+                if (count($result) === 0) {
+                    Log::error('no data!');
+                    break;
                 }
-                $document = [
-                    'artists_id' => $artist_id,
-                    'app' => env('APP_NAME'),
-                    'type' => $this->channelType,
-                    'post' => $item['id']['videoId'],
-                    'title' => $item['snippet']['title'],
-                    'contents' => str_replace('&quot;', '"', strip_tags($item['snippet']['description'])),
-                    'sns_account' => $item['snippet']['channelId'],
-                    'ori_tag' => [],
-                    'recorded_at' => Carbon::parse($item['snippet']['publishedAt'])->format('Y-m-d H:i:s'),
-                    'state' => 0,
-                    'cou_id' => $country[0]->id,
-                ];
+                $this->nextPageToken = $result['nextPageToken'];
+                $nodes = $result['medias'];
+                foreach ($nodes as $node) {
+                    try {
+                        $article = $this->article->where([
+                            'media_id' => 1,
+                            'url' => $node->getUrl()
+                        ])->first();
 
-                $thumbnail = $item['snippet']['thumbnails']['high'];
+                        if (!$article) {
+                            $article = $this->article->create([
+                                'media_id' => 1,
+                                'platform' => PlatformEnum::YOUTUBE,
+                                'url' => $node->getUrl(),
+                                'type' => ArticleType::KEYWORD,
+                                'keyword' => $keyword,
+                                'title' => $node->getTitle(),
+                                'contents' => $node->getDescription(),
+                                'thumbnail_url' => $node->getThumbnailsUrl(),
+                                'thumbnail_width' => $node->getThumbnailWidth(),
+                                'thumbnail_height' => $node->getThumbnailHeight(),
+                                'state' => 0,
+                                'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
+                            ]);
 
-                if ($thumbnail !== null) {
-                    $util = new Util();
-                    $response = $util->AzureUploadImageCropped($thumbnail['url'], $this->channelImagePath, $item['id']['videoId'] . '_');
-                    $document['thumbnail_url'] = '/' . $this->channelImagePath . '/' . $response['fileName'];
-                    $document['thumbnail_w'] = $response['width'];
-                    $document['thumbnail_h'] = $response['height'];
-                    $document['ori_thumbnail'] = $thumbnail['url'];
+                            if ($node->getUrl()) {
+                                $this->articleMedia->create([
+                                    'article_id' => $article->id,
+                                    'type' => ArticleMediaType::VIDEO,
+                                    'url' => $node->getUrl(),
+                                    'width' => 0,
+                                    'height' => 0,
+                                ]);
+                            }
+                        }
 
-                    $document['data'] = array(['image' => $document['thumbnail_url']]);
-                    $document['ori_data'] = array($document['thumbnail_url']);
-                }
-            }
-            if(isset($document)) {
-                $board = Board::create($document);
-            }
+                        sleep(1);
+                    } catch (\Exception $e) {
+                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    }
+                } $this->info($this->nextPageToken);
+            } while ($this->nextPageToken !== '');
         }
     }
 }
