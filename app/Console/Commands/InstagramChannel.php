@@ -2,38 +2,39 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\ArticleMediaType;
 use App\Enums\ArticleType;
 use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
-use App\Models\Keyword;
+use App\Models\Channel;
 use App\Services\InstagramService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class Instagram extends Command
+class InstagramChannel extends Command
 {
+    protected InstagramService $instagramService;
+
+    protected Channel $channel;
+    protected Article $article;
+    protected ArticleMedia $articleMedia;
+
+    protected string $maxId = '';
+
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'scrap:instagram:keyword';
+    protected $signature = 'scrap:instagram:channel';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = '인스타그램 크롤링(키워드별)';
-
-    protected InstagramService $instagramService;
-    protected Article $article;
-    protected ArticleMedia $articleMedia;
-    protected Keyword $keyword;
-    protected string $maxId = '';
+    protected $description = '인스타그램 크롤링(채널별)';
 
     /**
      * Create a new command instance.
@@ -42,22 +43,23 @@ class Instagram extends Command
      */
     public function __construct(
         InstagramService $instagramService,
+        Channel $channel,
         Article $article,
-        ArticleMedia $articleMedia,
-        Keyword $keyword
+        ArticleMedia $articleMedia
     )
     {
         parent::__construct();
 
         $this->instagramService = $instagramService;
+        $this->channel = $channel;
         $this->article = $article;
         $this->articleMedia = $articleMedia;
-        $this->keyword = $keyword;
     }
 
     /**
      * Execute the console command.
      *
+     * @return int
      */
     public function handle()
     {
@@ -71,71 +73,60 @@ class Instagram extends Command
         $login_id = $platformAccount->login_id;
         $login_password = $platformAccount->login_password;
 
-        // 키워드 정보 가져오기
-        $keywords = $this->keyword->active(PlatformEnum::INSTAGRAM)->get();
-
-        // 키워드 정보 가져오기 오류 발생
-        if (count($keywords) === 0) {
-            Log::error("not found available keywords");
-            return false;
-        }
-
         // 스크래핑 헤더 캐싱
         $headers = $this->instagramService->initInstagram($login_id, $login_password);
 
-        // 로그인 헤더 생성 오류 발생
-        if (count($headers) === 0) {
-            Log::error("Init instagram headers fail");
+        // channel 정보 DB에서 가져오기
+        $channels = $this->channel->active(PlatformEnum::INSTAGRAM)->get();
+
+        // 채널 정보 가져오기 오류 발생
+        if (count($channels) === 0) {
+            Log::error("not found available channels");
             return false;
         }
 
-        foreach($keywords as $keyword) {
-            $keyword = $keyword->keyword;
-
-            // 최근 게시물로(recent nodes) 부터 반복하여 스크래핑 처리
+        foreach($channels as $channel)
+        {
+            // 반복하여 스크래핑 처리
             do {
-                $scraped = $this->instagramService->requestInstagramByKeyword($headers, $keyword, $this->maxId);
-
-                $result = $this->instagramService->getInstagramByKeyword($keyword, $scraped);
+                $result = $this->instagramService->requestInstagramByAccount($headers, $channel->channel, 5, $this->maxId);
 
                 if (count($result) === 0) {
                     Log::error('no data!');
                     break;
                 }
+
                 $this->maxId = $result['maxId'];
                 $nodes = $result['medias'];
 
                 foreach ($nodes as $node) {
+                    // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
                     try {
                         $article = $this->article->where([
                             'media_id' => 1,
-                            'url' => $node->getUrl()
+                            'url' => $node->getLink()
                         ])->first();
 
                         if (!$article) {
                             $article = $this->article->create([
                                 'media_id' => 1,
                                 'platform' => PlatformEnum::INSTAGRAM,
-                                'url' => $node->getUrl(),
-                                'type' => ArticleType::KEYWORD,
-                                'keyword' => $keyword,
+                                'url' => $node->getLink(),
+                                'type' => ArticleType::CHANNEL,
+                                'channel' => $channel->channel,
                                 'title' => '',
                                 'contents' => $node->getCaption(),
-                                'thumbnail_url' => '',
+                                'thumbnail_url' => $node->getImageThumbnail()['url'],
+                                'thumbnail_width' => $node->getImageThumbnail()['width'],
+                                'thumbnail_height' => $node->getImageThumbnail()['height'],
                                 'hashtag' => $node->getHashTag(),
                                 'state' => 0,
                                 'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
                             ]);
 
-                            if ($node->getImageUrl()) {
-                                $this->articleMedia->create([
-                                    'article_id' => $article->id,
-                                    'type' => ArticleMediaType::IMAGE,
-                                    'url' => $node->getImageUrl(),
-                                    'width' => $node->getImageWidth(),
-                                    'height' => $node->getImageHeight(),
-                                ]);
-                            }
+                            $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
+
+                            $this->articleMedia->insert($articleMedias);
                         }
 
                         sleep(1);
@@ -144,13 +135,8 @@ class Instagram extends Command
                     }
                 }
 
-                $this->info($this->maxId);
+                // $this->info($this->maxId);
             } while ($this->maxId !== '');
         }
-
-        // 계정 사용횟수 업데이트
-        $platformAccount->increments('use_count');
-
-        return true;
     }
 }

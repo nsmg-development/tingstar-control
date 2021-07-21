@@ -19,6 +19,7 @@ class CreateChannelsTable extends Migration
             $table->string('platform', 25)->comment('수집 대상: instagram, facebook, youtube, tiktok 등');
             $table->string('name')->comment('계정이름');
             $table->string('channel')->comment('계정정보(채널)');
+            $table->boolean('state')->default(false)->comment('사용 여부(0:미사용, 1:사용)');
             $table->timestamps();
         });
     }

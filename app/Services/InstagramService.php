@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\ArticleMediaType;
+use App\Models\Instagram\InstagramMedia;
 use App\Models\PlatformAccount;
 use App\Parsers\InstagramParser;
 use GuzzleHttp\Client;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use InstagramScraper\Exception\InstagramAuthException;
@@ -17,9 +20,14 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 class InstagramService
 {
+    const BASE_URL = 'https://www.instagram.com';
+    const MEDIA_JSON_BY_TAG = 'https://www.instagram.com/explore/tags/{tag}/?__a=1&max_id={max_id}';
+    const ACCOUNT_MEDIAS = 'https://www.instagram.com/graphql/query/?query_hash=e769aa130647d2354c40ea6a439bfc08&variables={variables}';
+
     protected PlatformAccount $platformAccount;
     protected string $maxId = '';
-    const MEDIA_JSON_BY_TAG = 'https://www.instagram.com/explore/tags/{tag}/?__a=1&max_id={max_id}';
+
+    private string $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36';
 
     public function __construct(PlatformAccount $platformAccount)
     {
@@ -31,7 +39,7 @@ class InstagramService
      * @param $arr
      * @return array
      */
-    public function getInstagram($tag, $arr): array
+    public function getInstagramByKeyword($tag, $arr): array
     {
         // 현재 미사용
         if (array_key_exists('graphql', $arr)) {
@@ -146,7 +154,7 @@ class InstagramService
      * @param string $maxId
      * @return array
      */
-    public function requestInstagram(array $headers, string $keyword, string $maxId): array
+    public function requestInstagramByKeyword(array $headers, string $keyword, string $maxId): array
     {
         $url = str_replace('{tag}', urlencode($keyword), static::MEDIA_JSON_BY_TAG);
         $url = str_replace('{max_id}', urlencode($maxId), $url);
@@ -154,6 +162,56 @@ class InstagramService
         $response = Http::withHeaders($headers)->get($url);
 
         return $this->decodeRawBodyToJson($response->body());
+    }
+
+    public function requestInstagramByAccount(array $headers, string $channel, int $count = 12, string $maxId = ''): array
+    {
+        $index = 0;
+        $hasNextPage = true;
+        $medias = [];
+
+        $toReturn = [
+            'medias' => $medias,
+            'maxId' => $maxId,
+            'hasNextPage' => $hasNextPage,
+        ];
+
+
+        while ($index < $count && $hasNextPage) {
+
+            $variables = json_encode([
+                'id' => $channel,
+                'first' => (string) $count,
+                'after' => $maxId
+            ]);
+
+            $url = str_replace('{variables}', urlencode($variables), static::ACCOUNT_MEDIAS);
+
+            // $headers = $this->generateHeaders(null, null);
+
+            $response = Http::withHeaders($headers)->get($url);
+
+            $result = $this->decodeRawBodyToJson($response->body());
+
+            $nodes = $result['data']['user']['edge_owner_to_timeline_media']['edges'];
+
+            foreach ($nodes as $mediaArray) {
+                if ($index === $count) {
+                    return $medias;
+                }
+                $medias[] = InstagramMedia::create($mediaArray['node']);
+                $index++;
+            }
+
+            $maxId = $result['data']['user']['edge_owner_to_timeline_media']['page_info']['end_cursor'];
+            $hasNextPage = $result['data']['user']['edge_owner_to_timeline_media']['page_info']['has_next_page'];
+        }
+
+        return [
+            'medias' => $medias,
+            'maxId' => $maxId,
+            'hasNextPage' => $hasNextPage,
+        ];
     }
 
     /**
@@ -187,6 +245,108 @@ class InstagramService
     public function decodeRawBodyToJson($rawBody): array
     {
         return json_decode($rawBody, true, 512, JSON_BIGINT_AS_STRING);
+    }
+
+    /**
+     * @param $session
+     * @param $gisToken
+     *
+     * @return array
+     */
+    private function generateHeaders($session, $gisToken = null): array
+    {
+        $headers = [];
+        if ($session) {
+            $cookies = '';
+            foreach ($session as $key => $value) {
+                $cookies .= "$key=$value; ";
+            }
+
+            $csrf = empty($session['csrftoken']) ? $session['x-csrftoken'] : $session['csrftoken'];
+
+            $headers = [
+                'cookie' => $cookies,
+                'referer' => static::BASE_URL . '/',
+                'x-csrftoken' => $csrf,
+            ];
+
+        }
+
+        if ($this->userAgent) {
+            $headers['user-agent'] = $this->userAgent;
+
+            if (!is_null($gisToken)) {
+                $headers['x-instagram-gis'] = $gisToken;
+            }
+        }
+
+        if (empty($headers['x-csrftoken'])) {
+            $headers['x-csrftoken'] = md5(uniqid()); // this can be whatever, insta doesn't like an empty value
+        }
+
+        return $headers;
+    }
+
+    /**
+     * @param int $articleId
+     * @param string $type
+     * @param $node
+     * @return array|array[]
+     */
+    public function getArticleMedias(int $articleId, string $type, $node): array
+    {
+        if ($type === 'image') {
+            return [
+                'article_id' => $articleId,
+                'type' => ArticleMediaType::IMAGE,
+                'url' => $node->getImageStandardResolution()['url'],
+                'width' => $node->getImageStandardResolution()['width'],
+                'height' => $node->getImageStandardResolution()['height'],
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ];
+        }
+
+        if ($type === 'video') {
+            return [
+                [
+                    'article_id' => $articleId,
+                    'type' => ArticleMediaType::VIDEO,
+                    'url' => $node->getVideoStandardResolutionUrl(),
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                ],
+            ];
+        }
+
+        if ($type === 'sidecar') {
+            $result = [];
+            foreach ($node->getSidecarMedias() as $media) {
+                if ($media->getType() === 'image') {
+                    array_push($result, [
+                        'article_id' => $articleId,
+                        'type' => ArticleMediaType::IMAGE,
+                        'url' => $media->getImageStandardResolution()['url'],
+                        'width' => $media->getImageStandardResolution()['width'],
+                        'height' => $media->getImageStandardResolution()['height'],
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
+                    ]);
+                }
+
+                if ($media->getType() === 'video') {
+                    array_push($result, [
+                        'article_id' => $articleId,
+                        'type' => ArticleMediaType::VIDEO,
+                        'url' => $media->getVideoStandardResolutionUrl(),
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
+                    ]);
+                }
+            }
+
+            return $result;
+        }
     }
 
     /**
