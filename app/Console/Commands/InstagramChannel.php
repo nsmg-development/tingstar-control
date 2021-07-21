@@ -138,5 +138,6 @@ class InstagramChannel extends Command
                 // $this->info($this->maxId);
             } while ($this->maxId !== '');
         }
+        return true;
     }
 }
