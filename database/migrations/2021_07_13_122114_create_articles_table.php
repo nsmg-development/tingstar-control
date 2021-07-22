@@ -30,6 +30,7 @@ class CreateArticlesTable extends Migration
             $table->boolean('state')->default(false)->comment('노출 여부(0:비노출, 1:노출)');
             $table->datetime('date')->comment('게시일자');
             $table->unique(['media_id', 'url']);
+            $table->index('media_id');
             $table->timestamps();
         });
     }
