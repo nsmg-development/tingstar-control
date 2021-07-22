@@ -8,6 +8,7 @@ use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\Keyword;
+use App\Services\AzureService;
 use App\Services\YoutubeService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -31,6 +32,7 @@ class Youtube extends Command
 
     protected PlatformEnum $platformEnum;
     protected YoutubeService $youtubeService;
+    protected AzureService $azureService;
     protected Article $article;
     protected ArticleMedia $articleMedia;
     protected Keyword $keyword;
@@ -44,6 +46,7 @@ class Youtube extends Command
     public function __construct(
         PlatformEnum $platformEnum,
         YoutubeService $youtubeService,
+        AzureService $azureService,
         Article $article,
         ArticleMedia $articleMedia,
         Keyword $keyword
@@ -53,6 +56,7 @@ class Youtube extends Command
 
         $this->platformEnum = $platformEnum;
         $this->youtubeService = $youtubeService;
+        $this->azureService = $azureService;
         $this->article = $article;
         $this->articleMedia = $articleMedia;
         $this->keyword = $keyword;
@@ -103,7 +107,7 @@ class Youtube extends Command
                                 'keyword' => $keyword,
                                 'title' => $node->getTitle(),
                                 'contents' => $node->getDescription(),
-                                'thumbnail_url' => $node->getThumbnailsUrl(),
+                                'thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(),  'images'),
                                 'thumbnail_width' => $node->getThumbnailWidth(),
                                 'thumbnail_height' => $node->getThumbnailHeight(),
                                 'state' => 0,
