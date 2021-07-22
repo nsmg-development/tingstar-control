@@ -8,10 +8,12 @@ use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\Keyword;
+use App\Services\AzureService;
 use App\Services\InstagramService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Instagram extends Command
 {
@@ -30,6 +32,7 @@ class Instagram extends Command
     protected $description = '인스타그램 크롤링(키워드별)';
 
     protected InstagramService $instagramService;
+    protected AzureService $azureService;
     protected Article $article;
     protected ArticleMedia $articleMedia;
     protected Keyword $keyword;
@@ -42,6 +45,7 @@ class Instagram extends Command
      */
     public function __construct(
         InstagramService $instagramService,
+        AzureService $azureService,
         Article $article,
         ArticleMedia $articleMedia,
         Keyword $keyword
@@ -50,6 +54,7 @@ class Instagram extends Command
         parent::__construct();
 
         $this->instagramService = $instagramService;
+        $this->azureService = $azureService;
         $this->article = $article;
         $this->articleMedia = $articleMedia;
         $this->keyword = $keyword;
@@ -61,6 +66,8 @@ class Instagram extends Command
      */
     public function handle()
     {
+//        $resized_image = $this->azureService->AzureUploadImage("https://i.ytimg.com/vi/yU3qEoRSUgI/hqdefault.jpg", "image", "300", "400");
+
         // 인스타그램 로그인 계정 DB 참조
         $platformAccount = $this->instagramService->getPlatformAccount(PlatformEnum::INSTAGRAM, 0);
         if (!$platformAccount) {
@@ -122,6 +129,7 @@ class Instagram extends Command
                                 'title' => '',
                                 'contents' => $node->getCaption(),
                                 'thumbnail_url' => '',
+                                'azure_thumbnail_url' => '',
                                 'hashtag' => $node->getHashTag(),
                                 'state' => 0,
                                 'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
@@ -131,7 +139,7 @@ class Instagram extends Command
                                 $this->articleMedia->create([
                                     'article_id' => $article->id,
                                     'type' => ArticleMediaType::IMAGE,
-                                    'url' => $node->getImageUrl(),
+                                    'url' => $this->azureService->AzureUploadImage($node->getImageUrl(),  'images'),
                                     'width' => $node->getImageWidth(),
                                     'height' => $node->getImageHeight(),
                                 ]);

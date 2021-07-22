@@ -12,6 +12,7 @@
         "guzzlehttp/guzzle": "^7.0.1",
         "laravel/framework": "^8.40",
         "laravel/tinker": "^2.5",
+        "matthewbdaly/laravel-azure-storage": "^1.6",
         "phpfastcache/phpfastcache": "^8.0",
         "raiym/instagram-php-scraper": "^0.11.1"
     },
