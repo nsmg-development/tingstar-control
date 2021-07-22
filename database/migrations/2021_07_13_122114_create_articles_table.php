@@ -20,7 +20,7 @@ class CreateArticlesTable extends Migration
             $table->string('type', 25)->comment('수집 타입: keyword, channel');
             $table->string('keyword')->nullable()->comment('수집 키워드');
             $table->string('channel')->nullable()->comment('수집 채널');
-            $table->text('url')->unique()->comment('원본 url');
+            $table->text('url')->comment('원본 url');
             $table->string('title')->comment('제목');
             $table->text('contents')->comment('내용');
             $table->text('thumbnail_url')->nullable()->comment('썸네일 url');
@@ -29,6 +29,7 @@ class CreateArticlesTable extends Migration
             $table->text('hashtag')->nullable()->comment('해시태그');
             $table->boolean('state')->default(false)->comment('노출 여부(0:비노출, 1:노출)');
             $table->datetime('date')->comment('게시일자');
+            $table->unique(['media_id', 'url']);
             $table->timestamps();
         });
     }
