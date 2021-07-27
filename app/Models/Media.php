@@ -16,6 +16,6 @@ class Media extends Model
 
     public function articles(): HasMany
     {
-        return $this->hasMany(Aritcle::class);
+        return $this->hasMany(Article::class);
     }
 }
