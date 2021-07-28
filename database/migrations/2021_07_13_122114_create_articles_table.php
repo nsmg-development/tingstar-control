@@ -23,9 +23,10 @@ class CreateArticlesTable extends Migration
             $table->string('url', 500)->comment('원본 url');
             $table->string('title')->comment('제목');
             $table->text('contents')->comment('내용');
+            $table->string('storage_thumbnail_url', 200)->nullable()->comment('저장된 썸네일 url');
             $table->text('thumbnail_url')->nullable()->comment('썸네일 url');
-            $table->text('thumbnail_width')->nullable()->comment('썸네일 가로 사이즈(px)');
-            $table->text('thumbnail_height')->nullable()->comment('썸네일 세로 사이즈(px)');
+            $table->unsignedInteger('thumbnail_width')->nullable()->comment('썸네일 가로 사이즈(px)');
+            $table->unsignedInteger('thumbnail_height')->nullable()->comment('썸네일 세로 사이즈(px)');
             $table->text('hashtag')->nullable()->comment('해시태그');
             $table->boolean('state')->default(false)->comment('노출 여부(0:비노출, 1:노출)');
             $table->datetime('date')->comment('게시일자');

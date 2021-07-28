@@ -14,7 +14,13 @@ class CreateArticleOwnersTable extends Migration
     public function up()
     {
         Schema::create('article_owners', function (Blueprint $table) {
-            $table->id();
+            $table->string('id')->primary();
+            $table->string('url')->nullable()->comment('소유자 페이지 URL');
+            $table->string('name')->nullable()->comment('소유자 이름, 채널명');
+            $table->string('storage_thumbnail_url', 200)->nullable()->comment('저장된 썸네일 url');
+            $table->text('thumbnail_url')->nullable()->comment('썸네일 URL');
+            $table->unsignedInteger('thumbnail_width')->nullable()->comment('썸네일 가로 사이즈(px)');
+            $table->unsignedInteger('thumbnail_height')->nullable()->comment('썸네일 세로 사이즈(px)');
             $table->timestamps();
         });
     }
