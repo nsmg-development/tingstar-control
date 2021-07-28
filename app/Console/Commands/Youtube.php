@@ -8,6 +8,7 @@ use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\Keyword;
+use App\Models\Media;
 use App\Services\AzureService;
 use App\Services\YoutubeService;
 use Carbon\Carbon;
@@ -36,6 +37,7 @@ class Youtube extends Command
     protected Article $article;
     protected ArticleMedia $articleMedia;
     protected Keyword $keyword;
+    protected Media $media;
     protected string $nextPageToken;
 
     /**
@@ -49,7 +51,8 @@ class Youtube extends Command
         AzureService $azureService,
         Article $article,
         ArticleMedia $articleMedia,
-        Keyword $keyword
+        Keyword $keyword,
+        Media $media
     )
     {
         parent::__construct();
@@ -60,6 +63,7 @@ class Youtube extends Command
         $this->article = $article;
         $this->articleMedia = $articleMedia;
         $this->keyword = $keyword;
+        $this->media = $media;
     }
 
     /**
@@ -68,18 +72,19 @@ class Youtube extends Command
      */
     public function handle()
     {
-        $keywords = $this->keyword->active(PlatformEnum::YOUTUBE)->get();
+        $medias = $this->media->with(['keywords' => function ($query) {
+            $query->where('platform', PlatformEnum::YOUTUBE);
+        }])->get();
 
-        // 키워드 정보 가져오기 오류 발생
-        if (!$keywords) {
-            Log::error("not found available keywords");
-            return false;
-        }
-
-        foreach ($keywords as $keyword) {
-            $keyword = $keyword->keyword;
-
-            do{
+        foreach ($medias as $media) {
+            foreach ($media->keywords as $keyword) {
+                $keyword = $keyword->keyword;
+                // 키워드 정보 가져오기 오류 발생
+                if (!$keyword) {
+                    Log::error("not found available keywords");
+                    return false;
+                }
+//                do{
                 $result = $this->youtubeService->getYoutube($keyword);
 
                 // 유튜브 데이터 없는 경우 오류 출력
@@ -94,20 +99,21 @@ class Youtube extends Command
                 foreach ($nodes as $node) {
                     try {
                         $article = $this->article->where([
-                            'media_id' => 1,
+                            'media_id' => $media->id,
                             'url' => $node->getUrl()
                         ])->first();
 
                         if (!$article) {
                             $article = $this->article->create([
-                                'media_id' => 1,
+                                'media_id' => $media->id,
                                 'platform' => PlatformEnum::YOUTUBE,
                                 'url' => $node->getUrl(),
                                 'type' => ArticleType::KEYWORD,
                                 'keyword' => $keyword,
                                 'title' => $node->getTitle(),
                                 'contents' => $node->getDescription(),
-                                'thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(),  'images'),
+                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), 'images'),
+                                'thumbnail_url' => $node->getThumbnailsUrl(),
                                 'thumbnail_width' => $node->getThumbnailWidth(),
                                 'thumbnail_height' => $node->getThumbnailHeight(),
                                 'state' => 0,
@@ -132,9 +138,9 @@ class Youtube extends Command
                 }
 
                 $this->info($this->nextPageToken);
-            } while ($this->nextPageToken !== '');
+//                } while ($this->nextPageToken !== '');
+            }
         }
-
         return true;
     }
 }

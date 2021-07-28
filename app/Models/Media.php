@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Media extends Model
 {
+    protected $table = 'medias';
+
     use HasFactory;
 
     protected $hidden = [
