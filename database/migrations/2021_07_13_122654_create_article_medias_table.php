@@ -17,7 +17,7 @@ class CreateArticleMediasTable extends Migration
             $table->id();
             $table->unsignedBigInteger('article_id')->comment('수집데이터 id');
             $table->string('type', 25)->comment('미디어 타입, image, movie...');
-            $table->string('storage_url', 200)->nullable()->comment('저장된 url');
+            $table->string('storage_url', 200)->nullable()->comment('저장된 미디어 url');
             $table->text('url')->comment('미디어 url');
             $table->unsignedInteger('width')->nullable()->comment('미디어 가로 사이즈(px)');
             $table->unsignedInteger('height')->nullable()->comment('미디어 세로 사이즈(px)');
