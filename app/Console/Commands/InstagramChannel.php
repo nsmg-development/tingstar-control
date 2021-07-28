@@ -105,13 +105,14 @@ class InstagramChannel extends Command
 
                 foreach ($nodes as $node) {
                     // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
-                    // try {
+                    try {
                         $article = $this->article->where([
                             'media_id' => 1,
                             'url' => $node->getLink()
                         ])->first();
 
-                        $this->info('Check::' . $node->getLink());
+                        // $this->info('Check::' . $node->getLink());
+                        // $this->info('IMG::' . $node->getImageThumbnail()['url']);
 
                         if (!$article) {
                             $article = $this->article->create([
@@ -131,7 +132,7 @@ class InstagramChannel extends Command
                                 'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
                             ]);
 
-                            $this->info('Created::', $node->getLink());
+                            // $this->info('Created::' . $node->getLink());
 
                             $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
 
@@ -139,9 +140,9 @@ class InstagramChannel extends Command
                         }
 
                         sleep(1);
-                    // } catch (\Exception $e) {
-                    //     Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
-                    // }
+                    } catch (\Exception $e) {
+                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    }
                 }
 
                 // $this->info($this->maxId);
