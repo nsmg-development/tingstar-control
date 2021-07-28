@@ -20,6 +20,7 @@ class CreateArticlesTable extends Migration
             $table->string('type', 25)->comment('수집 타입: keyword, channel');
             $table->string('keyword')->nullable()->comment('수집 키워드');
             $table->string('channel')->nullable()->comment('수집 채널');
+            $table->string('article_owner_id')->nullable()->comment('게시자 아이디');
             $table->string('url', 500)->comment('원본 url');
             $table->string('title')->comment('제목');
             $table->text('contents')->comment('내용');
@@ -32,6 +33,7 @@ class CreateArticlesTable extends Migration
             $table->datetime('date')->comment('게시일자');
             $table->unique(['media_id', 'url']);
             $table->index('media_id');
+            $table->index('article_owner_id');
             $table->timestamps();
         });
     }
