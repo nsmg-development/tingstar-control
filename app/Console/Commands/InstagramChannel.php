@@ -89,8 +89,7 @@ class InstagramChannel extends Command
             return false;
         }
 
-        foreach($channels as $channel)
-        {
+        foreach ($channels as $channel) {
             // 반복하여 스크래핑 처리
             do {
                 $result = $this->instagramService->requestInstagramByAccount($headers, $channel->channel, 5, $this->maxId);
@@ -123,7 +122,7 @@ class InstagramChannel extends Command
                                 'channel' => $channel->channel,
                                 'title' => '',
                                 'contents' => $node->getCaption(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'],  'images'),
+                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], 'images'),
                                 'thumbnail_url' => $node->getImageThumbnail()['url'],
                                 'thumbnail_width' => $node->getImageThumbnail()['width'],
                                 'thumbnail_height' => $node->getImageThumbnail()['height'],

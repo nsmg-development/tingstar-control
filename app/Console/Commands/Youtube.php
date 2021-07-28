@@ -79,12 +79,14 @@ class Youtube extends Command
         foreach ($medias as $media) {
             foreach ($media->keywords as $keyword) {
                 $keyword = $keyword->keyword;
+
                 // 키워드 정보 가져오기 오류 발생
                 if (!$keyword) {
                     Log::error("not found available keywords");
                     return false;
                 }
-//                do{
+
+               // do{
                 $result = $this->youtubeService->getYoutube($keyword);
 
                 // 유튜브 데이터 없는 경우 오류 출력
@@ -138,7 +140,7 @@ class Youtube extends Command
                 }
 
                 $this->info($this->nextPageToken);
-//                } while ($this->nextPageToken !== '');
+               // } while ($this->nextPageToken !== '');
             }
         }
         return true;

@@ -87,7 +87,7 @@ class Instagram extends Command
         }])->get();
 
         // 키워드 정보 가져오기
-//        $keywords = $this->keyword->active(PlatformEnum::INSTAGRAM)->get();
+        // $keywords = $this->keyword->active(PlatformEnum::INSTAGRAM)->get();
 
         // 스크래핑 헤더 캐싱
         $headers = $this->instagramService->initInstagram($login_id, $login_password);
@@ -97,9 +97,11 @@ class Instagram extends Command
             Log::error("Init instagram headers fail");
             return false;
         }
+
         foreach ($medias as $media) {
-            foreach($media->keywords as $keyword) {
+            foreach ($media->keywords as $keyword) {
                 $keyword = $keyword->keyword;
+
                 // 키워드 정보 가져오기 오류 발생
                 if (!$keyword) {
                     Log::error("not found available keywords");
@@ -146,7 +148,7 @@ class Instagram extends Command
                                     $this->articleMedia->create([
                                         'article_id' => $article->id,
                                         'type' => ArticleMediaType::IMAGE,
-                                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageUrl(),  'images'),
+                                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageUrl(), 'images'),
                                         'url' => $node->getImageUrl(),
                                         'width' => $node->getImageWidth(),
                                         'height' => $node->getImageHeight(),
