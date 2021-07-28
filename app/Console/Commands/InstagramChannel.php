@@ -7,6 +7,7 @@ use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\Channel;
+use App\Services\AzureService;
 use App\Services\InstagramService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -29,6 +30,7 @@ class InstagramChannel extends Command
     protected $description = '인스타그램 크롤링(채널별)';
 
     protected InstagramService $instagramService;
+    protected AzureService $azureService;
 
     protected Channel $channel;
     protected Article $article;
@@ -43,6 +45,7 @@ class InstagramChannel extends Command
      */
     public function __construct(
         InstagramService $instagramService,
+        AzureService $azureService,
         Channel $channel,
         Article $article,
         ArticleMedia $articleMedia
@@ -51,6 +54,7 @@ class InstagramChannel extends Command
         parent::__construct();
 
         $this->instagramService = $instagramService;
+        $this->azureService = $azureService;
         $this->channel = $channel;
         $this->article = $article;
         $this->articleMedia = $articleMedia;
@@ -101,11 +105,13 @@ class InstagramChannel extends Command
 
                 foreach ($nodes as $node) {
                     // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
-                    try {
+                    // try {
                         $article = $this->article->where([
                             'media_id' => 1,
                             'url' => $node->getLink()
                         ])->first();
+
+                        $this->info('Check::' . $node->getLink());
 
                         if (!$article) {
                             $article = $this->article->create([
@@ -116,6 +122,7 @@ class InstagramChannel extends Command
                                 'channel' => $channel->channel,
                                 'title' => '',
                                 'contents' => $node->getCaption(),
+                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'],  'images'),
                                 'thumbnail_url' => $node->getImageThumbnail()['url'],
                                 'thumbnail_width' => $node->getImageThumbnail()['width'],
                                 'thumbnail_height' => $node->getImageThumbnail()['height'],
@@ -124,15 +131,17 @@ class InstagramChannel extends Command
                                 'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
                             ]);
 
+                            $this->info('Created::', $node->getLink());
+
                             $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
 
                             $this->articleMedia->insert($articleMedias);
                         }
 
                         sleep(1);
-                    } catch (\Exception $e) {
-                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
-                    }
+                    // } catch (\Exception $e) {
+                    //     Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    // }
                 }
 
                 // $this->info($this->maxId);

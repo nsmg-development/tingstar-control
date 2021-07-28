@@ -21,13 +21,19 @@ use Psr\SimpleCache\InvalidArgumentException;
 
 class InstagramService
 {
+    protected AzureService $azureService;
+
     protected PlatformAccount $platformAccount;
     protected string $maxId = '';
 
     private string $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36';
 
-    public function __construct(PlatformAccount $platformAccount)
+    public function __construct(
+        AzureService $azureService,
+        PlatformAccount $platformAccount
+    )
     {
+        $this->azureService = $azureService;
         $this->platformAccount = $platformAccount;
     }
 
@@ -296,6 +302,7 @@ class InstagramService
             return [
                 'article_id' => $articleId,
                 'type' => ArticleMediaType::IMAGE,
+                'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'],  'images'),
                 'url' => $node->getImageStandardResolution()['url'],
                 'width' => $node->getImageStandardResolution()['width'],
                 'height' => $node->getImageStandardResolution()['height'],
@@ -323,6 +330,7 @@ class InstagramService
                     array_push($result, [
                         'article_id' => $articleId,
                         'type' => ArticleMediaType::IMAGE,
+                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'],  'images'),
                         'url' => $media->getImageStandardResolution()['url'],
                         'width' => $media->getImageStandardResolution()['width'],
                         'height' => $media->getImageStandardResolution()['height'],
