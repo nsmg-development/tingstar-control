@@ -18,4 +18,14 @@ class Media extends Model
     {
         return $this->hasMany(Article::class);
     }
+
+    public function keywords(): hasMany
+    {
+        return $this->hasMany(Keyword::class);
+    }
+
+    public function channels(): hasMany
+    {
+        return $this->hasMany(Channel::class);
+    }
 }
