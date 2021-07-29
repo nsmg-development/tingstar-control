@@ -70,7 +70,7 @@ class Instagram extends Command
      */
     public function handle()
     {
-//        $resized_image = $this->azureService->AzureUploadImage("https://i.ytimg.com/vi/yU3qEoRSUgI/hqdefault.jpg", "image", "300", "400");
+        // $resized_image = $this->azureService->AzureUploadImage("https://i.ytimg.com/vi/yU3qEoRSUgI/hqdefault.jpg", "image", "300", "400");
 
         // 인스타그램 로그인 계정 DB 참조
         $platformAccount = $this->instagramService->getPlatformAccount(PlatformEnum::INSTAGRAM, 0);
