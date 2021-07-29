@@ -6,6 +6,7 @@ use App\Enums\ArticleType;
 use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
+use App\Models\ArticleOwner;
 use App\Models\Channel;
 use App\Services\AzureService;
 use App\Services\InstagramService;
@@ -35,6 +36,7 @@ class InstagramChannel extends Command
     protected Channel $channel;
     protected Article $article;
     protected ArticleMedia $articleMedia;
+    protected ArticleOwner $articleOwner;
 
     protected string $maxId = '';
 
@@ -48,7 +50,8 @@ class InstagramChannel extends Command
         AzureService $azureService,
         Channel $channel,
         Article $article,
-        ArticleMedia $articleMedia
+        ArticleMedia $articleMedia,
+        ArticleOwner $articleOwner
     )
     {
         parent::__construct();
@@ -58,6 +61,7 @@ class InstagramChannel extends Command
         $this->channel = $channel;
         $this->article = $article;
         $this->articleMedia = $articleMedia;
+        $this->articleOwner = $articleOwner;
     }
 
     /**
@@ -104,7 +108,7 @@ class InstagramChannel extends Command
 
                 foreach ($nodes as $node) {
                     // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
-                    try {
+                    // try {
                         $article = $this->article->where([
                             'media_id' => 1,
                             'url' => $node->getLink()
@@ -114,9 +118,11 @@ class InstagramChannel extends Command
                         // $this->info('IMG::' . $node->getImageThumbnail()['url']);
 
                         if (!$article) {
+                            // 수집 정보 저장
                             $article = $this->article->create([
                                 'media_id' => 1,
                                 'platform' => PlatformEnum::INSTAGRAM,
+                                'article_owner_id' => $node->getOwnerId(),
                                 'url' => $node->getLink(),
                                 'type' => ArticleType::CHANNEL,
                                 'channel' => $channel->channel,
@@ -131,6 +137,17 @@ class InstagramChannel extends Command
                                 'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
                             ]);
 
+                            // 수집 정보 게시자 저장
+                            $this->articleOwner->updateOrCreate(
+                                [
+                                    'id' => (string) $node->getOwnerId(),
+                                    'platform' => PlatformEnum::INSTAGRAM
+                                ],
+                                [
+                                    'name' => $node->getOwner()['username']
+                                ]
+                            );
+
                             // $this->info('Created::' . $node->getLink());
 
                             $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
@@ -139,9 +156,9 @@ class InstagramChannel extends Command
                         }
 
                         sleep(1);
-                    } catch (\Exception $e) {
-                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
-                    }
+                    // } catch (\Exception $e) {
+                    //     Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    // }
                 }
 
                 // $this->info($this->maxId);
