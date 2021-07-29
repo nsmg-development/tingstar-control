@@ -11,6 +11,8 @@ class YoutubeParser
     protected string $thumbnailHeight = '';
     protected string $date = '';
     protected string $videoUrl = '';
+    protected string $ownerId = '';
+    protected string $ownerName = '';
 
     public function __construct($media)
     {
@@ -23,6 +25,9 @@ class YoutubeParser
 
         $this->date = $media->snippet['publishedAt'];
         $this->videoUrl = "https://www.youtube.com/watch?v=" . $media->id['videoId'];
+
+        $this->ownerId = $media->snippet['channelId'];
+        $this->ownerName = $media->snippet['channelTitle'];
     }
 
     /**
@@ -76,5 +81,15 @@ class YoutubeParser
     public function getCreatedTime()
     {
         return $this->date;
+    }
+
+    public function getOwnerId()
+    {
+        return $this->ownerId;
+    }
+
+    public function getOwnerName()
+    {
+        return $this->ownerName;
     }
 }

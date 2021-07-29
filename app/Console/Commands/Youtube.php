@@ -7,6 +7,7 @@ use App\Enums\ArticleType;
 use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
+use App\Models\ArticleOwner;
 use App\Models\Keyword;
 use App\Models\Media;
 use App\Services\AzureService;
@@ -38,6 +39,7 @@ class Youtube extends Command
     protected ArticleMedia $articleMedia;
     protected Keyword $keyword;
     protected Media $media;
+    protected ArticleOwner $articleOwner;
     protected string $nextPageToken;
 
     /**
@@ -52,7 +54,8 @@ class Youtube extends Command
         Article $article,
         ArticleMedia $articleMedia,
         Keyword $keyword,
-        Media $media
+        Media $media,
+        ArticleOwner $articleOwner
     )
     {
         parent::__construct();
@@ -64,6 +67,7 @@ class Youtube extends Command
         $this->articleMedia = $articleMedia;
         $this->keyword = $keyword;
         $this->media = $media;
+        $this->articleOwner =$articleOwner;
     }
 
     /**
@@ -73,7 +77,7 @@ class Youtube extends Command
     public function handle()
     {
         $medias = $this->media->with(['keywords' => function ($query) {
-            $query->where('platform', PlatformEnum::YOUTUBE);
+            $query->where('platform', PlatformEnum::YOUTUBE)->where('state',1);
         }])->get();
 
         foreach ($medias as $media) {
@@ -108,6 +112,7 @@ class Youtube extends Command
                         if (!$article) {
                             $article = $this->article->create([
                                 'media_id' => $media->id,
+                                'article_owner_id' => $node->getOwnerId(),
                                 'platform' => PlatformEnum::YOUTUBE,
                                 'url' => $node->getUrl(),
                                 'type' => ArticleType::KEYWORD,
@@ -131,6 +136,16 @@ class Youtube extends Command
                                     'height' => 0,
                                 ]);
                             }
+                            // 수집 정보 게시자 저장
+                            $this->articleOwner->updateOrCreate(
+                                [
+                                    'id' => (string) $node->getOwnerId(),
+                                    'platform' => PlatformEnum::YOUTUBE
+                                ],
+                                [
+                                    'name' => $node->getOwnerName()
+                                ]
+                            );
                         }
 
                         sleep(1);

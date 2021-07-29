@@ -7,6 +7,7 @@ use App\Enums\ArticleType;
 use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
+use App\Models\ArticleOwner;
 use App\Models\Keyword;
 use App\Models\Media;
 use App\Services\AzureService;
@@ -38,6 +39,7 @@ class Instagram extends Command
     protected ArticleMedia $articleMedia;
     protected Keyword $keyword;
     protected Media $media;
+    protected ArticleOwner  $articleOwner;
     protected string $maxId = '';
 
     /**
@@ -51,7 +53,8 @@ class Instagram extends Command
         Article $article,
         ArticleMedia $articleMedia,
         Keyword $keyword,
-        Media $media
+        Media $media,
+        ArticleOwner $articleOwner
     )
     {
         parent::__construct();
@@ -62,6 +65,7 @@ class Instagram extends Command
         $this->articleMedia = $articleMedia;
         $this->keyword = $keyword;
         $this->media = $media;
+        $this->articleOwner =$articleOwner;
     }
 
     /**
@@ -120,7 +124,6 @@ class Instagram extends Command
                     }
                     $this->maxId = $result['maxId'];
                     $nodes = $result['medias'];
-
                     foreach ($nodes as $node) {
                         try {
                             $article = $this->article->where([
@@ -131,6 +134,7 @@ class Instagram extends Command
                             if (!$article) {
                                 $article = $this->article->create([
                                     'media_id' => $media->id,
+                                    'article_owner_id' => $node->getOwnerId(),
                                     'platform' => PlatformEnum::INSTAGRAM,
                                     'url' => $node->getUrl(),
                                     'type' => ArticleType::KEYWORD,
@@ -143,6 +147,17 @@ class Instagram extends Command
                                     'state' => 0,
                                     'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
                                 ]);
+
+                                // 수집 정보 게시자 저장
+                                $this->articleOwner->updateOrCreate(
+                                    [
+                                        'id' => $node->getOwnerId(),
+                                        'platform' => PlatformEnum::INSTAGRAM
+                                    ],
+                                    [
+                                        'name' => $node->getOwnerName(),
+                                    ]
+                                );
 
                                 if ($node->getImageUrl()) {
                                     $this->articleMedia->create([
