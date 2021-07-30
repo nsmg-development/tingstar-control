@@ -25,6 +25,8 @@ class AzureService
 
     public function FileNameParsing($imgUrl): string
     {
-        return Carbon::now()->timestamp . '_' . preg_replace("/[ #\&\+\-%@=\/\\\:;,\'\"\^`~\_|\!\?\*$#<>()\[\]\{\}]/i", "", basename($imgUrl));
+        $imageUrl = explode('?', $imgUrl);  // 인스타그램 이미지 URL `?` 정리
+
+        return Carbon::now()->timestamp . '_' . preg_replace("/[ #\&\+\-%@=\/\\\:;,\'\"\^`~\_|\!\?\*$#<>()\[\]\{\}]/i", "", basename($imageUrl[0]));
     }
 }

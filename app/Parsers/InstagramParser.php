@@ -7,6 +7,7 @@ class InstagramParser
     protected int $created_at = 0;
     protected string $caption = '';
     protected int $ownerId = 0;
+    protected string $ownerName = '';
     protected int $likesCount = 0;
     protected string $id = '';
     protected string $url = '';
@@ -18,9 +19,11 @@ class InstagramParser
 
     public function __construct($media)
     {
+
         $this->created_at = $media->taken_at;
         $this->caption = $media->caption['text'];
         $this->ownerId = $media->user['pk'];
+        $this->ownerName = $media->user['username'];
         $this->likesCount = $media->like_count;
         $this->id = $media->id;
         $this->url = "https://www.instagram.com/p/$media->code";
@@ -139,5 +142,15 @@ class InstagramParser
     public function getImageHeight(): int
     {
         return $this->imageHeight;
+    }
+
+    public function getOwnerId()
+    {
+        return $this->ownerId;
+    }
+
+    public function getOwnerName()
+    {
+        return $this->ownerName;
     }
 }

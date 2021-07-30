@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class YoutubeService
 {
     protected PlatformAccount $platformAccount;
-    protected string $key = "AIzaSyA7j6AR8E3JcnM-5YqV20HclXhfpR_e7Yo";
+    protected string $key = "AIzaSyAEH7tvthe2cxOTPr3j2cxyDM1FjuPoAPY";
     protected string $nextPageToken = '';
 
     const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?q={q}&type=video&part=snippet&order=date&maxResults=5&key={key}';

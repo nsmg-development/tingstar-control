@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Media extends Model
 {
+    protected $table = 'medias';
+
     use HasFactory;
 
     protected $hidden = [
@@ -17,5 +19,15 @@ class Media extends Model
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class);
+    }
+
+    public function keywords(): hasMany
+    {
+        return $this->hasMany(Keyword::class);
+    }
+
+    public function channels(): hasMany
+    {
+        return $this->hasMany(Channel::class);
     }
 }
