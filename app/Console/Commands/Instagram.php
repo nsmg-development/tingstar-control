@@ -31,7 +31,7 @@ class Instagram extends Command
      *
      * @var string
      */
-    protected $description = '인스타그램 크롤링(키워드별)';
+    protected $description = '인스타그램 크롤링(키워드)';
 
     protected InstagramService $instagramService;
     protected AzureService $azureService;
@@ -39,7 +39,7 @@ class Instagram extends Command
     protected ArticleMedia $articleMedia;
     protected Keyword $keyword;
     protected Media $media;
-    protected ArticleOwner  $articleOwner;
+    protected ArticleOwner $articleOwner;
     protected string $maxId = '';
 
     /**
@@ -65,7 +65,7 @@ class Instagram extends Command
         $this->articleMedia = $articleMedia;
         $this->keyword = $keyword;
         $this->media = $media;
-        $this->articleOwner =$articleOwner;
+        $this->articleOwner = $articleOwner;
     }
 
     /**
@@ -87,7 +87,7 @@ class Instagram extends Command
         $login_password = $platformAccount->login_password;
 
         $medias = $this->media->with(['keywords' => function ($query) {
-            $query->where('platform', PlatformEnum::INSTAGRAM);
+            $query->where('platform', PlatformEnum::INSTAGRAM)->where('state', 1);
         }])->get();
 
         // 키워드 정보 가져오기
