@@ -9,5 +9,5 @@ final class PlatformEnum
     const TIKTOK = 'tiktok';
     const YOUTUBE = 'youtube';
     const NAVERBLOG = 'naver-blog';
-    const twitter = 'twitter';
+    const TWITTER = 'twitter';
 }
