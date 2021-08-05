@@ -352,6 +352,8 @@ class InstagramService
 
             return $result;
         }
+
+        return [];
     }
 
     /**

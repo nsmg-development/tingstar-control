@@ -151,8 +151,9 @@ class InstagramChannel extends Command
                             // $this->info('Created::' . $node->getLink());
 
                             $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
-
-                            $this->articleMedia->insert($articleMedias);
+                            if (count($articleMedias) > 0) {
+                                $this->articleMedia->insert($articleMedias);
+                            }
                         }
 
                         sleep(1);
