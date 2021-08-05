@@ -8,36 +8,36 @@ use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\ArticleOwner;
-use App\Models\Keyword;
+use App\Models\Channel;
 use App\Models\Media;
 use App\Services\AzureService;
-use App\Services\YoutubeService;
+use App\Services\YoutubeChannelService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class Youtube extends Command
+class YoutubeChannel extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'scrap:youtube:keyword';
+    protected $signature = 'scrap:youtube:channel';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = '유튜브 크롤링(키워드)';
+    protected $description = '유튜브 크롤링(채널)';
 
     protected PlatformEnum $platformEnum;
-    protected YoutubeService $youtubeService;
+    protected YoutubeChannelService $youtubeChannelService;
     protected AzureService $azureService;
     protected Article $article;
     protected ArticleMedia $articleMedia;
-    protected Keyword $keyword;
+    protected Channel $channel;
     protected Media $media;
     protected ArticleOwner $articleOwner;
     protected string $nextPageToken;
@@ -49,11 +49,11 @@ class Youtube extends Command
      */
     public function __construct(
         PlatformEnum $platformEnum,
-        YoutubeService $youtubeService,
+        YoutubeChannelService $youtubeChannelService,
         AzureService $azureService,
         Article $article,
         ArticleMedia $articleMedia,
-        Keyword $keyword,
+        Channel $channel,
         Media $media,
         ArticleOwner $articleOwner
     )
@@ -61,11 +61,11 @@ class Youtube extends Command
         parent::__construct();
 
         $this->platformEnum = $platformEnum;
-        $this->youtubeService = $youtubeService;
+        $this->youtubeChannelService = $youtubeChannelService;
         $this->azureService = $azureService;
         $this->article = $article;
         $this->articleMedia = $articleMedia;
-        $this->keyword = $keyword;
+        $this->channel = $channel;
         $this->media = $media;
         $this->articleOwner = $articleOwner;
     }
@@ -76,22 +76,22 @@ class Youtube extends Command
      */
     public function handle()
     {
-        $medias = $this->media->with(['keywords' => function ($query) {
+        $medias = $this->media->with(['channels' => function ($query) {
             $query->where('platform', PlatformEnum::YOUTUBE)->where('state', 1);
         }])->get();
 
         foreach ($medias as $media) {
-            foreach ($media->keywords as $keyword) {
-                $keyword = $keyword->keyword;
+            foreach ($media->channels as $channel) {
+                $channel = $channel->channel;
 
                 // 키워드 정보 가져오기 오류 발생
-                if (!$keyword) {
-                    Log::error("not found available keywords");
+                if (!$channel) {
+                    Log::error("not found available channels");
                     return false;
                 }
 
                 // do{
-                $result = $this->youtubeService->getYoutube($keyword);
+                $result = $this->youtubeChannelService->getYoutube($channel);
 
                 // 유튜브 데이터 없는 경우 오류 출력
                 if (count($result) === 0) {
@@ -115,8 +115,8 @@ class Youtube extends Command
                                 'article_owner_id' => $node->getOwnerId(),
                                 'platform' => PlatformEnum::YOUTUBE,
                                 'url' => $node->getUrl(),
-                                'type' => ArticleType::KEYWORD,
-                                'keyword' => $keyword,
+                                'type' => ArticleType::CHANNEL,
+                                'channel' => $channel,
                                 'title' => $node->getTitle(),
                                 'contents' => $node->getDescription(),
                                 'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), 'images'),

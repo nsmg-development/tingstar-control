@@ -21,10 +21,10 @@ class NaverBlog extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = '네이버 블로그 크롤링(키워드)';
 
     protected Article $article;
-    protected String $keyword = "에버랜드";
+    protected string $keyword = "에버랜드";
 
     /**
      * Create a new command instance.

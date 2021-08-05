@@ -52,14 +52,14 @@ class Blog extends Command
         $driver = RemoteWebDriver::create($host, $caps);
 
         $artist_id = $this->artistsId;
-        $names = \DB::table('artists')->where('id',$artist_id)->get(); // object
+        $names = \DB::table('artists')->where('id', $artist_id)->get(); // object
         try {
             foreach ($names as $name) {
                 $country = \DB::table('countries')->where('name', $name->name)->get();
                 $client_id = "H7okOrLzi4GT5xJCBjwl";
                 $client_secret = "xKhY_toN10";
                 $encText = urlencode($name->name . "여행");
-                $url = "https://openapi.naver.com/v1/search/blog.json?query=".$encText."&display=10&sort=sim"; // json 결과
+                $url = "https://openapi.naver.com/v1/search/blog.json?query=" . $encText . "&display=10&sort=sim"; // json 결과
 
                 $is_post = false;
                 $ch = curl_init();
@@ -68,16 +68,16 @@ class Blog extends Command
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
                 $headers = array();
-                $headers[] = "X-Naver-Client-Id: ".$client_id;
-                $headers[] = "X-Naver-Client-Secret: ".$client_secret;
+                $headers[] = "X-Naver-Client-Id: " . $client_id;
+                $headers[] = "X-Naver-Client-Secret: " . $client_secret;
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-                $response = curl_exec ($ch);
+                $response = curl_exec($ch);
                 $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                echo "status_code:".$status_code."";
-                curl_close ($ch);
+                echo "status_code:" . $status_code . "";
+                curl_close($ch);
 
-                if($status_code == 200) {
+                if ($status_code == 200) {
                     $array_data = json_decode($response, true);
                     $user = env('APP_NAME');
 
@@ -94,7 +94,7 @@ class Blog extends Command
                             continue;
                         }
                         $search = 'naver';      //naver.com 링크로 된 블로그만 가져오기 위해, 지정하지 않으면 모든 블로그를 가져옴.
-                        if(strpos($item['link'], $search)) {
+                        if (strpos($item['link'], $search)) {
                             $document = [
                                 'artists_id' => $artist_id,
                                 'app' => env('APP_NAME'),
@@ -117,14 +117,14 @@ class Blog extends Command
                             $datas = $driver->findElements(WebDriverBy::className('se-image-resource'));
 
                             foreach ($metas as $meta) {
-                                if($meta->getAttribute('property') == 'og:image') {
+                                if ($meta->getAttribute('property') == 'og:image') {
                                     $img_url = $meta->getAttribute('content');
 
                                     // file save
-                                    if($img_url !== null) {
+                                    if ($img_url !== null) {
                                         $util = new Util();
                                         $resized_image = $util->AzureUploadImage($img_url, $this->channelImagePath);
-                                        if($resized_image['fileName'] !== null) {
+                                        if ($resized_image['fileName'] !== null) {
                                             $document['thumbnail_url'] = '/' . $this->channelImagePath . '/' . $resized_image['fileName'];
                                             $document['thumbnail_w'] = $resized_image['width'];
                                             $document['thumbnail_h'] = $resized_image['height'];
@@ -142,7 +142,7 @@ class Blog extends Command
                                 // file save
                                 $util = new Util();
                                 $resized_image = $util->AzureUploadImage($img_url, $this->channelImagePath);
-                                if($resized_image['fileName'] !== null || $resized_image['fileName'] === '') {
+                                if ($resized_image['fileName'] !== null || $resized_image['fileName'] === '') {
                                     $data[] = [
                                         'image' => '/' . $this->channelImagePath . '/' . $resized_image['fileName']
                                     ];
