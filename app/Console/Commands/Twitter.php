@@ -135,7 +135,6 @@ class Twitter extends Command
                         //         'height' => 0,
                         //     ]);
                         // }
-
                         // 수집 정보 게시자 저장
                         $this->articleOwner->updateOrCreate(
                             [
