@@ -4,10 +4,10 @@ namespace App\Parsers;
 
 class TwitterParser
 {
-    // protected string $thumbnailUrl = '';
-    // protected string $thumbnailWidth = '';
-    // protected string $thumbnailHeight = '';
-    // protected string $videoUrl = '';
+    protected string $thumbnailUrl = '';
+    protected string $thumbnailWidth = '';
+    protected string $thumbnailHeight = '';
+    protected string $videoUrl = '';
     protected string $mediaId = '';
     protected string $date = '';
     protected string $description = '';
@@ -17,15 +17,19 @@ class TwitterParser
     protected string $ownerPageUrl = '';
     protected string $twitterUrl = 'https://twitter.com/';
 
-    public function __construct($media, $user)
+    public function __construct($media, $user, $img)
     {
         $this->mediaId = $media->id;
         $this->date = $media->created_at;
         $this->description = $media->text;
         $this->ownerId = $media->author_id;
-        $this->ownerName = $user['username'];
-        $this->ownerImageUrl = $user['profile_image_url'];
-        $this->ownerPageUrl = $this->twitterUrl . $user['username'];
+        $this->ownerName = $user->username;
+        $this->ownerImageUrl = $user->profile_image_url;
+        $this->ownerPageUrl = $this->twitterUrl . $user->username;
+        $this->thumbnailUrl = $img->url;
+        $this->thumbnailWidth = $img->width;
+        $this->thumbnailHeight = $img->height;
+        $this->videoUrl = $img->videoUrl;
     }
 
     /**

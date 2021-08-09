@@ -19,36 +19,45 @@ class TwitterService
     {
         $params = [
             'tweet.fields' => 'author_id,created_at,attachments',
-            'media.fields' => 'preview_image_url',
+            'media.fields' => 'media_key,type,url,preview_image_url,width,height',
             'user.fields' => 'profile_image_url',
-            'expansions' => 'author_id',
+            'expansions' => 'author_id,attachments.media_keys',
             TwitterContract::KEY_RESPONSE_FORMAT => TwitterContract::RESPONSE_FORMAT_JSON,
         ];
 
         $arr = $this->decodeRawBodyToJson(Twitter::searchRecent($keyword . ' -is:retweet', $params));
-
         $medias = [];
         $hasNextPage = false;
-
         $toReturn = [
             'medias' => $medias,
             'hasNextPage' => $hasNextPage,
         ];
+
         if (empty($arr['meta']['result_count'])) {
             return $toReturn;
         }
 
         $sections = $arr['data'];
         $sectionUsers = $arr['includes']['users'];
+        $sectionMedias = $arr['media'];
         if (empty($sections)) {
             return $toReturn;
         }
+
         foreach ($sections as $section_index => $section) {
-            foreach ($sectionUsers as $user) {
-                try {
-                    $medias[] = new TwitterParser((object)$section, $user);
-                } catch (\Exception $e) {
-                    Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+            foreach ($sectionUsers as $section_user_index => $user) {
+                foreach ($sectionMedias as $section_media_index => $media) {
+                    try {
+                        if ($section_index === $section_user_index) {
+                            if ($section['attachments']['media_keys'][$section_media_index] === $media['media_key']) {
+                                $medias[] = new TwitterParser((object)$section, (object)$user, (object)$media);
+                            } else {
+                                $medias[] = new TwitterParser((object)$section, (object)$user, '');
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    }
                 }
             }
         }
