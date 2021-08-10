@@ -25,7 +25,7 @@ class TwitterService
             TwitterContract::KEY_RESPONSE_FORMAT => TwitterContract::RESPONSE_FORMAT_JSON,
         ];
 
-        $arr = $this->decodeRawBodyToJson(Twitter::searchRecent($keyword . ' -is:retweet', $params));
+        $arr = $this->decodeRawBodyToJson(Twitter::searchRecent('강아지' . ' -is:retweet', $params));
         $medias = [];
         $hasNextPage = false;
         $toReturn = [
@@ -39,18 +39,21 @@ class TwitterService
 
         $sections = $arr['data'];
         $sectionUsers = $arr['includes']['users'];
-        $sectionMedias = $arr['media'];
+        $sectionMedias = $arr['includes']['media'];
         if (empty($sections)) {
             return $toReturn;
         }
-
         foreach ($sections as $section_index => $section) {
             foreach ($sectionUsers as $section_user_index => $user) {
                 foreach ($sectionMedias as $section_media_index => $media) {
                     try {
                         if ($section_index === $section_user_index) {
-                            if ($section['attachments']['media_keys'][$section_media_index] === $media['media_key']) {
-                                $medias[] = new TwitterParser((object)$section, (object)$user, (object)$media);
+                            if (isset($section['attachments']['media_keys'])) {
+                                foreach ($section['attachments']['media_keys'] as $media_key) {
+                                    if ($media_key === $media['media_key']) {
+                                        $medias[] = new TwitterParser((object)$section, (object)$user, (object)$media);
+                                    }
+                                }
                             } else {
                                 $medias[] = new TwitterParser((object)$section, (object)$user, '');
                             }

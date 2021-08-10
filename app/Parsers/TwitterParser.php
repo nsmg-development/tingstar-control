@@ -8,6 +8,7 @@ class TwitterParser
     protected string $thumbnailWidth = '';
     protected string $thumbnailHeight = '';
     protected string $videoUrl = '';
+    protected string $mediaType = '';
     protected string $mediaId = '';
     protected string $date = '';
     protected string $description = '';
@@ -17,7 +18,7 @@ class TwitterParser
     protected string $ownerPageUrl = '';
     protected string $twitterUrl = 'https://twitter.com/';
 
-    public function __construct($media, $user, $img)
+    public function __construct($media, $user, $file)
     {
         $this->mediaId = $media->id;
         $this->date = $media->created_at;
@@ -26,10 +27,12 @@ class TwitterParser
         $this->ownerName = $user->username;
         $this->ownerImageUrl = $user->profile_image_url;
         $this->ownerPageUrl = $this->twitterUrl . $user->username;
-        $this->thumbnailUrl = $img->url;
-        $this->thumbnailWidth = $img->width;
-        $this->thumbnailHeight = $img->height;
-        $this->videoUrl = $img->videoUrl;
+        $this->thumbnailUrl = $file->url ?? '';
+        $this->mediaType = $file->type ?? '';
+        $this->thumbnailWidth = $file->width ?? 0;
+        $this->thumbnailHeight = $file->height ?? 0;
+        $this->videoUrl = $file->url ?? '';
+
     }
 
     /**
@@ -71,5 +74,30 @@ class TwitterParser
     public function getOwnerPageUrl(): string
     {
         return $this->ownerPageUrl;
+    }
+
+    public function getThumbnailUrl(): string
+    {
+        return $this->thumbnailUrl;
+    }
+
+    public function getMediaType(): string
+    {
+        return $this->mediaType;
+    }
+
+    public function getThumbnailWidth(): string
+    {
+        return $this->thumbnailWidth;
+    }
+
+    public function getThumbnailHeight(): string
+    {
+        return $this->thumbnailHeight;
+    }
+
+    public function getVideoUrl(): string
+    {
+        return $this->videoUrl;
     }
 }
