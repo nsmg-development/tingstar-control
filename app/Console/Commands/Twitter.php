@@ -126,15 +126,26 @@ class Twitter extends Command
                             'date' => Carbon::parse($node->getDate())->format('Y-m-d H:i:s'),
                         ]);
 
-                        // if ($node->getUrl()) {
-                        //     $this->articleMedia->create([
-                        //         'article_id' => $article->id,
-                        //         'type' => ArticleMediaType::IMAGE,
-                        //         'url' => $node[''],
-                        //         'width' => 0,
-                        //         'height' => 0,
-                        //     ]);
-                        // }
+                        if ($node->getThumbnailUrl()) {
+                            $this->articleMedia->create([
+                                'article_id' => $article->id,
+                                'type' => ArticleMediaType::IMAGE,
+                                'storage_url' => $this->azureService->AzureUploadImage($node->getThumbnailUrl(), 'images'),
+                                'url' => $node->getThumbnailUrl(),
+                                'width' => $node->getThumbnailWidth(),
+                                'height' => $node->getThumbnailHeight(),
+                            ]);
+                        }
+
+                        if ($node->getVideoUrl()) {
+                            $this->articleMedia->create([
+                                'article_id' => $article->id,
+                                'type' => ArticleMediaType::VIDEO,
+                                'url' => $node->getVideoUrl(),
+                                'width' => $node->getThumbnailWidth(),
+                                'height' => $node->getThumbnailHeight(),
+                            ]);
+                        }
                         // 수집 정보 게시자 저장
                         $this->articleOwner->updateOrCreate(
                             [
