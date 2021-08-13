@@ -184,7 +184,7 @@ class InstagramService
 
             $variables = json_encode([
                 'id' => $channel,
-                'first' => (string) $count,
+                'first' => (string)$count,
                 'after' => $maxId
             ]);
 
@@ -302,7 +302,7 @@ class InstagramService
             return [
                 'article_id' => $articleId,
                 'type' => ArticleMediaType::IMAGE,
-                'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'],  'images'),
+                'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/images'),
                 'url' => $node->getImageStandardResolution()['url'],
                 'width' => $node->getImageStandardResolution()['width'],
                 'height' => $node->getImageStandardResolution()['height'],
@@ -330,7 +330,7 @@ class InstagramService
                     array_push($result, [
                         'article_id' => $articleId,
                         'type' => ArticleMediaType::IMAGE,
-                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'],  'images'),
+                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/images'),
                         'url' => $media->getImageStandardResolution()['url'],
                         'width' => $media->getImageStandardResolution()['width'],
                         'height' => $media->getImageStandardResolution()['height'],

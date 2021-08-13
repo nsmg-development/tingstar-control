@@ -119,7 +119,7 @@ class YoutubeChannel extends Command
                                 'channel' => $channel,
                                 'title' => $node->getTitle(),
                                 'contents' => $node->getDescription(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), 'images'),
+                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images'),
                                 'thumbnail_url' => $node->getThumbnailsUrl(),
                                 'thumbnail_width' => $node->getThumbnailWidth(),
                                 'thumbnail_height' => $node->getThumbnailHeight(),

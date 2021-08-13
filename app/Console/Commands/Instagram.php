@@ -163,7 +163,7 @@ class Instagram extends Command
                                     $this->articleMedia->create([
                                         'article_id' => $article->id,
                                         'type' => ArticleMediaType::IMAGE,
-                                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageUrl(), 'images'),
+                                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageUrl(), date('Y') . '/images'),
                                         'url' => $node->getImageUrl(),
                                         'width' => $node->getImageWidth(),
                                         'height' => $node->getImageHeight(),
