@@ -130,7 +130,7 @@ class Twitter extends Command
                             $this->articleMedia->create([
                                 'article_id' => $article->id,
                                 'type' => ArticleMediaType::IMAGE,
-                                'storage_url' => $this->azureService->AzureUploadImage($node->getThumbnailUrl(), 'images'),
+                                'storage_url' => $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images'),
                                 'url' => $node->getThumbnailUrl(),
                                 'width' => $node->getThumbnailWidth(),
                                 'height' => $node->getThumbnailHeight(),
@@ -155,7 +155,7 @@ class Twitter extends Command
                             [
                                 'name' => $node->getOwnerName(),
                                 'url' => $node->getOwnerPageUrl(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), 'images'),
+                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), date('Y') . '/images'),
                                 'thumbnail_url' => $node->getOwnerImageUrl(),
                                 'thumbnail_width' => 0,
                                 'thumbnail_height' => 0,

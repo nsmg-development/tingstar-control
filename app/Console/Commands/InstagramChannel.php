@@ -109,54 +109,54 @@ class InstagramChannel extends Command
                 foreach ($nodes as $node) {
                     // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
                     // try {
-                        $article = $this->article->where([
+                    $article = $this->article->where([
+                        'media_id' => 1,
+                        'url' => $node->getLink()
+                    ])->first();
+
+                    // $this->info('Check::' . $node->getLink());
+                    // $this->info('IMG::' . $node->getImageThumbnail()['url']);
+
+                    if (!$article) {
+                        // 수집 정보 저장
+                        $article = $this->article->create([
                             'media_id' => 1,
-                            'url' => $node->getLink()
-                        ])->first();
+                            'platform' => PlatformEnum::INSTAGRAM,
+                            'article_owner_id' => $node->getOwnerId(),
+                            'url' => $node->getLink(),
+                            'type' => ArticleType::CHANNEL,
+                            'channel' => $channel->channel,
+                            'title' => '',
+                            'contents' => $node->getCaption(),
+                            'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], date('Y') . '/images'),
+                            'thumbnail_url' => $node->getImageThumbnail()['url'],
+                            'thumbnail_width' => $node->getImageThumbnail()['width'],
+                            'thumbnail_height' => $node->getImageThumbnail()['height'],
+                            'hashtag' => $node->getHashTag(),
+                            'state' => 0,
+                            'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
+                        ]);
 
-                        // $this->info('Check::' . $node->getLink());
-                        // $this->info('IMG::' . $node->getImageThumbnail()['url']);
+                        // 수집 정보 게시자 저장
+                        $this->articleOwner->updateOrCreate(
+                            [
+                                'id' => (string)$node->getOwnerId(),
+                                'platform' => PlatformEnum::INSTAGRAM
+                            ],
+                            [
+                                'name' => $node->getOwner()['username']
+                            ]
+                        );
 
-                        if (!$article) {
-                            // 수집 정보 저장
-                            $article = $this->article->create([
-                                'media_id' => 1,
-                                'platform' => PlatformEnum::INSTAGRAM,
-                                'article_owner_id' => $node->getOwnerId(),
-                                'url' => $node->getLink(),
-                                'type' => ArticleType::CHANNEL,
-                                'channel' => $channel->channel,
-                                'title' => '',
-                                'contents' => $node->getCaption(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], 'images'),
-                                'thumbnail_url' => $node->getImageThumbnail()['url'],
-                                'thumbnail_width' => $node->getImageThumbnail()['width'],
-                                'thumbnail_height' => $node->getImageThumbnail()['height'],
-                                'hashtag' => $node->getHashTag(),
-                                'state' => 0,
-                                'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
-                            ]);
+                        // $this->info('Created::' . $node->getLink());
 
-                            // 수집 정보 게시자 저장
-                            $this->articleOwner->updateOrCreate(
-                                [
-                                    'id' => (string) $node->getOwnerId(),
-                                    'platform' => PlatformEnum::INSTAGRAM
-                                ],
-                                [
-                                    'name' => $node->getOwner()['username']
-                                ]
-                            );
-
-                            // $this->info('Created::' . $node->getLink());
-
-                            $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
-                            if (count($articleMedias) > 0) {
-                                $this->articleMedia->insert($articleMedias);
-                            }
+                        $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
+                        if (count($articleMedias) > 0) {
+                            $this->articleMedia->insert($articleMedias);
                         }
+                    }
 
-                        sleep(1);
+                    sleep(1);
                     // } catch (\Exception $e) {
                     //     Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                     // }
