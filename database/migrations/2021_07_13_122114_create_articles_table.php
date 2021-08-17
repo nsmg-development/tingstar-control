@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class CreateArticlesTable extends Migration
@@ -36,6 +37,9 @@ class CreateArticlesTable extends Migration
             $table->index('article_owner_id');
             $table->timestamps();
         });
+
+        DB::statement('ALTER TABLE articles ADD FULLTEXT full(contents)');
+        DB::statement('ALTER TABLE articles ADD FULLTEXT full(hashtag)');
     }
 
     /**
