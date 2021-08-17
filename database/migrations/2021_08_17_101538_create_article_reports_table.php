@@ -18,9 +18,9 @@ class CreateArticleReportsTable extends Migration
             $table->unsignedBigInteger('media_id');
             $table->unsignedBigInteger('article_id');
             $table->unsignedBigInteger('user_id');
-            $table->string('user_name');
-            $table->string('type', 20);
-            $table->text('description')->nullable();
+            $table->string('user_name')->comment('작성자명');
+            $table->string('type', 20)->comment('신고타입: COPYRIGHT, SEXUAL, ETC...');
+            $table->text('description')->nullable()->comment('신고 상세 내용');
             $table->timestamps();
         });
     }

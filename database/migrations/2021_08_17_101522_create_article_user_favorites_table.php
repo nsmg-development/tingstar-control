@@ -15,8 +15,8 @@ class CreateArticleUserFavoritesTable extends Migration
     {
         Schema::create('article_user_favorites', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->index();
             $table->unsignedBigInteger('media_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->unsignedBigInteger('article_id')->index();
             $table->timestamps();
         });
