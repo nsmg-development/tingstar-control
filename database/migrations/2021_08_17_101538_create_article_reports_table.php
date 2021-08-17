@@ -15,7 +15,6 @@ class CreateArticleReportsTable extends Migration
     {
         Schema::create('article_reports', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('media_id');
             $table->unsignedBigInteger('article_id');
             $table->unsignedBigInteger('user_id');
             $table->string('user_name')->comment('작성자명');
