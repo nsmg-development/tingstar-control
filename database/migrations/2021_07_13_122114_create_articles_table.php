@@ -17,7 +17,7 @@ class CreateArticlesTable extends Migration
         Schema::create('articles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('media_id')->comment('매체 id');
-            $table->string('platform', 25)->comment('수집 대상: instagram, facebook, youtube, tiktok 등');
+            $table->string('platform', 25)->index()->comment('수집 대상: instagram, facebook, youtube, tiktok 등');
             $table->string('type', 25)->comment('수집 타입: keyword, channel');
             $table->string('keyword')->nullable()->comment('수집 키워드');
             $table->string('channel')->nullable()->comment('수집 채널');
@@ -36,10 +36,11 @@ class CreateArticlesTable extends Migration
             $table->index('media_id');
             $table->index('article_owner_id');
             $table->timestamps();
+
+            $table->index(['state', 'media_id']);
         });
 
-        DB::statement('ALTER TABLE articles ADD FULLTEXT full(contents)');
-        DB::statement('ALTER TABLE articles ADD FULLTEXT full(hashtag)');
+        DB::statement('ALTER TABLE articles ADD FULLTEXT INDEX search_contents_hashtag_index(contents, hashtag) WITH PARSER ngram');
     }
 
     /**

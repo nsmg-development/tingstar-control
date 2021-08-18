@@ -22,6 +22,8 @@ class CreateArticleMediasTable extends Migration
             $table->unsignedInteger('width')->nullable()->comment('미디어 가로 사이즈(px)');
             $table->unsignedInteger('height')->nullable()->comment('미디어 세로 사이즈(px)');
             $table->timestamps();
+
+            $table->foreignId('article_id')->constrained();
         });
     }
 
