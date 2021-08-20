@@ -90,8 +90,6 @@ class Instagram extends Command
             $query->where('platform', PlatformEnum::INSTAGRAM)->where('state', 1);
         }])->get();
 
-        // 키워드 정보 가져오기
-        // $keywords = $this->keyword->active(PlatformEnum::INSTAGRAM)->get();
 
         // 스크래핑 헤더 캐싱
         $headers = $this->instagramService->initInstagram($login_id, $login_password);
@@ -132,7 +130,17 @@ class Instagram extends Command
                             ])->first();
 
                             if (!$article) {
+
+                                $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                                $id = Carbon::parse($date)->getTimestamp() * -1;
+                                $has_media = false;
+
+                                if ($node->getImageUrl()) {
+                                    $has_media = true;
+                                }
+
                                 $article = $this->article->create([
+                                    'id' => $id,
                                     'media_id' => $media->id,
                                     'article_owner_id' => $node->getOwnerId(),
                                     'platform' => PlatformEnum::INSTAGRAM,
@@ -145,7 +153,8 @@ class Instagram extends Command
                                     'storage_thumbnail_url' => '',
                                     'hashtag' => $node->getHashTag(),
                                     'state' => 0,
-                                    'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
+                                    'date' => $date,
+                                    'has_media' => $has_media
                                 ]);
 
                                 // 수집 정보 게시자 저장
