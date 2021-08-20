@@ -15,10 +15,12 @@ class CreateArticleDetailLogsTable extends Migration
     {
         Schema::create('article_detail_logs', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('article_id');
-            $table->unsignedBigInteger('user_id');
+            $table->bigInteger('article_id');
+            $table->string('user_id');
             $table->string('type', 20);
             $table->timestamps();
+
+            $table->index(['article_id', 'user_id']);
         });
     }
 
