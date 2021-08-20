@@ -115,12 +115,10 @@ class InstagramChannel extends Command
                         'url' => $node->getLink()
                     ])->first();
 
-                    // $this->info('Check::' . $node->getLink());
-                    // $this->info('IMG::' . $node->getImageThumbnail()['url']);
-
                     if (!$article) {
                         $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
                         $id = Carbon::parse($date)->getTimestamp() * -1;
+                        $has_media = false;
 
                         if (ArticleMediaType::isValidValue($node->getType()) || $node->getType() === 'sidecar') {
                             $has_media = true;
@@ -144,7 +142,7 @@ class InstagramChannel extends Command
                             'hashtag' => $node->getHashTag(),
                             'state' => 0,
                             'date' => $date,
-                            'has_media' => $has_media ?? false
+                            'has_media' => $has_media
                         ]);
 
                         // 수집 정보 게시자 저장
