@@ -143,7 +143,8 @@ class InstagramChannel extends Command
                             'thumbnail_height' => $node->getImageThumbnail()['height'],
                             'hashtag' => $node->getHashTag(),
                             'state' => 0,
-                            'date' => $date
+                            'date' => $date,
+                            'has_media' => $has_media ?? false
                         ]);
 
                         // 수집 정보 게시자 저장
