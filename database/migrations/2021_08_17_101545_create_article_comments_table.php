@@ -15,8 +15,8 @@ class CreateArticleCommentsTable extends Migration
     {
         Schema::create('article_comments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('article_id')->index();
-            $table->unsignedBigInteger('user_id')->index();
+            $table->bigInteger('article_id')->index();
+            $table->string('user_id')->index();
             $table->string('user_name')->comment('작성자명');
             $table->unsignedBigInteger('article_comment_id')->nullable()->comment('댓글 id');
             $table->string('comment')->comment('댓글 내용');

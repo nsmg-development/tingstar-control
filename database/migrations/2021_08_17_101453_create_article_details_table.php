@@ -15,7 +15,7 @@ class CreateArticleDetailsTable extends Migration
     {
         Schema::create('article_details', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('article_id')->comment('수집된 자료 id');
+            $table->bigInteger('article_id')->index()->comment('수집된 자료 id');
             $table->unsignedInteger('like')->nullable()->default(0)->comment('좋아요 수');
             $table->unsignedInteger('dislike')->nullable()->default(0)->comment('싫어요 수');
             $table->unsignedInteger('report')->nullable()->default(0)->comment('신고 수');

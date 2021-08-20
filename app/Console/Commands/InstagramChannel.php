@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ArticleMediaType;
 use App\Enums\ArticleType;
 use App\Enums\PlatformEnum;
 use App\Models\Article;
@@ -118,8 +119,16 @@ class InstagramChannel extends Command
                     // $this->info('IMG::' . $node->getImageThumbnail()['url']);
 
                     if (!$article) {
+                        $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                        $id = Carbon::parse($date)->getTimestamp() * -1;
+
+                        if (ArticleMediaType::isValidValue($node->getType()) || $node->getType() === 'sidecar') {
+                            $has_media = true;
+                        }
+
                         // 수집 정보 저장
                         $article = $this->article->create([
+                            'id' => $id,
                             'media_id' => 1,
                             'platform' => PlatformEnum::INSTAGRAM,
                             'article_owner_id' => $node->getOwnerId(),
@@ -134,7 +143,7 @@ class InstagramChannel extends Command
                             'thumbnail_height' => $node->getImageThumbnail()['height'],
                             'hashtag' => $node->getHashTag(),
                             'state' => 0,
-                            'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
+                            'date' => $date
                         ]);
 
                         // 수집 정보 게시자 저장
@@ -150,7 +159,7 @@ class InstagramChannel extends Command
 
                         // $this->info('Created::' . $node->getLink());
 
-                        $articleMedias = $this->instagramService->getArticleMedias($article->id, $node->getType(), $node);
+                        $articleMedias = $this->instagramService->getArticleMedias($id, $node->getType(), $node);
                         if (count($articleMedias) > 0) {
                             $this->articleMedia->insert($articleMedias);
                         }
