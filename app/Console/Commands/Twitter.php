@@ -93,7 +93,7 @@ class Twitter extends Command
                 }
 
                 // do{
-                $result = $this->twitterService->getTwitter('골프');
+                $result = $this->twitterService->getTwitter($keyword);
                 // 유튜브 데이터 없는 경우 오류 출력
                 if (count($result) === 0) {
                     Log::error('no data!');
@@ -108,8 +108,17 @@ class Twitter extends Command
                         'url' => $this->twitterUrl . $node->getMediaId()
                     ])->first();
 
+                    $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                    $id = Carbon::parse($date)->getTimestamp() * -1;
+                    $has_media = false;
+
+                    if (ArticleMediaType::isValidValue($node->getType())) {
+                        $has_media = true;
+                    }
+
                     if (!$article) {
                         $article = $this->article->create([
+                            'id' => $id,
                             'media_id' => $media->id,
                             'article_owner_id' => $node->getOwnerId(),
                             'platform' => PlatformEnum::TWITTER,
@@ -123,7 +132,8 @@ class Twitter extends Command
                             'thumbnail_width' => 0,
                             'thumbnail_height' => 0,
                             'state' => 0,
-                            'date' => Carbon::parse($node->getDate())->format('Y-m-d H:i:s'),
+                            'date' => $date,
+                            'has_media' => $has_media
                         ]);
 
                         if ($node->getThumbnailUrl()) {
