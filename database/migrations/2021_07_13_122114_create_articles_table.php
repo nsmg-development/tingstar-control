@@ -35,7 +35,7 @@ class CreateArticlesTable extends Migration
             $table->boolean('has_media')->index()->default(false)->comment('이미지/동영상 존재 유무');
             $table->timestamps();
 
-            $table->unique(['media_id', 'url']);
+            $table->primary(['media_id', 'url']);
             $table->index(['state', 'media_id']);
         });
 

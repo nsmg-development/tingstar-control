@@ -10,6 +10,8 @@ class Article extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'id';
+
     protected $fillable = [
         'id', 'media_id', 'platform', 'type', 'keyword', 'channel', 'article_owner_id', 'url', 'title', 'contents',
         'thumbnail_url', 'storage_thumbnail_url', 'thumbnail_width', 'thumbnail_height', 'hashtag', 'state', 'date', 'has_media'
