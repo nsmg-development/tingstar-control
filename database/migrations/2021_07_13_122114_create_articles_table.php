@@ -30,7 +30,7 @@ class CreateArticlesTable extends Migration
             $table->unsignedInteger('thumbnail_width')->nullable()->comment('썸네일 가로 사이즈(px)');
             $table->unsignedInteger('thumbnail_height')->nullable()->comment('썸네일 세로 사이즈(px)');
             $table->text('hashtag')->nullable()->comment('해시태그');
-            $table->boolean('state')->default(false)->comment('노출 여부(0:비노출, 1:노출)');
+            $table->tinyInteger('state')->default(false)->comment('노출 여부(0:수집상태, 1:노출, 2:비노출)');
             $table->datetime('date')->index()->comment('게시일자');
             $table->boolean('has_media')->index()->default(false)->comment('이미지/동영상 존재 유무');
             $table->timestamps();
