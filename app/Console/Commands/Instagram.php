@@ -130,7 +130,6 @@ class Instagram extends Command
                             ])->first();
 
                             if (!$article) {
-
                                 $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
                                 $id = Carbon::parse($date)->getTimestamp() * -1;
                                 $has_media = false;
@@ -170,7 +169,7 @@ class Instagram extends Command
 
                                 if ($node->getImageUrl()) {
                                     $this->articleMedia->create([
-                                        'article_id' => $article->id,
+                                        'article_id' => $id,
                                         'type' => ArticleMediaType::IMAGE,
                                         'storage_url' => $this->azureService->AzureUploadImage($node->getImageUrl(), date('Y') . '/images'),
                                         'url' => $node->getImageUrl(),

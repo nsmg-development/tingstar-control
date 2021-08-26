@@ -15,7 +15,7 @@ class YoutubeService
     protected string $key = "AIzaSyAEH7tvthe2cxOTPr3j2cxyDM1FjuPoAPY";
     protected string $nextPageToken = '';
 
-    const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?q={q}&type=video&part=snippet&order=date&maxResults=5&key={key}';
+    const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?q={q}&type=video&part=snippet&order=date&maxResults=100&key={key}';
 
     public function getYoutube(string $keyword): array
     {

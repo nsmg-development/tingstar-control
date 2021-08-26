@@ -110,7 +110,6 @@ class Youtube extends Command
                         ])->first();
 
                         if (!$article) {
-
                             $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
                             $id = Carbon::parse($date)->getTimestamp() * -1;
                             $has_media = false;
@@ -119,7 +118,7 @@ class Youtube extends Command
                                 $has_media = true;
                             }
 
-                            $article = $this->article->create([
+                            $article = $this->article->insertGetId([
                                 'id' => $id,
                                 'media_id' => $media->id,
                                 'article_owner_id' => $node->getOwnerId(),
@@ -140,7 +139,7 @@ class Youtube extends Command
 
                             if ($node->getUrl()) {
                                 $this->articleMedia->create([
-                                    'article_id' => $article->id,
+                                    'article_id' => $id,
                                     'type' => ArticleMediaType::VIDEO,
                                     'url' => $node->getUrl(),
                                     'width' => 0,

@@ -110,6 +110,14 @@ class YoutubeChannel extends Command
                         ])->first();
 
                         if (!$article) {
+                            $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                            $id = Carbon::parse($date)->getTimestamp() * -1;
+                            $has_media = false;
+
+                            if ($node->getUrl()) {
+                                $has_media = true;
+                            }
+
                             $article = $this->article->create([
                                 'media_id' => $media->id,
                                 'article_owner_id' => $node->getOwnerId(),
@@ -124,12 +132,13 @@ class YoutubeChannel extends Command
                                 'thumbnail_width' => $node->getThumbnailWidth(),
                                 'thumbnail_height' => $node->getThumbnailHeight(),
                                 'state' => 0,
-                                'date' => Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s'),
+                                'date' => $date,
+                                'has_media' => $has_media
                             ]);
 
                             if ($node->getUrl()) {
                                 $this->articleMedia->create([
-                                    'article_id' => $article->id,
+                                    'article_id' => $id,
                                     'type' => ArticleMediaType::VIDEO,
                                     'url' => $node->getUrl(),
                                     'width' => 0,

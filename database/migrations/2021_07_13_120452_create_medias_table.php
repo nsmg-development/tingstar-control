@@ -17,6 +17,7 @@ class CreateMediasTable extends Migration
             $table->id();
             $table->unsignedInteger('media_idx')->comment('App id');
             $table->string('name');
+            $table->string('schema');
             $table->timestamps();
         });
     }
