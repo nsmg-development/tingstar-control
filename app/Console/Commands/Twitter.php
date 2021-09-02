@@ -49,13 +49,13 @@ class Twitter extends Command
      * @return void
      */
     public function __construct(
-        PlatformEnum $platformEnum,
-        AzureService $azureService,
-        Article $article,
-        ArticleMedia $articleMedia,
-        Keyword $keyword,
-        Media $media,
-        ArticleOwner $articleOwner,
+        PlatformEnum   $platformEnum,
+        AzureService   $azureService,
+        Article        $article,
+        ArticleMedia   $articleMedia,
+        Keyword        $keyword,
+        Media          $media,
+        ArticleOwner   $articleOwner,
         TwitterService $twitterService
     )
     {
@@ -92,95 +92,95 @@ class Twitter extends Command
                     return false;
                 }
 
-                // do{
-                $result = $this->twitterService->getTwitter($keyword);
-                // 유튜브 데이터 없는 경우 오류 출력
-                if (count($result) === 0) {
-                    Log::error('no data!');
-                    break;
-                }
-                $this->nextPageToken = $result['nextPageToken'];
-                $nodes = $result['medias'];
-                foreach ($nodes as $node) {
-                    // try {
-                    $article = $this->article->where([
-                        'media_id' => $media->id,
-                        'url' => $this->twitterUrl . $node->getMediaId()
-                    ])->first();
+                do {
+                    $result = $this->twitterService->getTwitter($keyword);
+                    // 유튜브 데이터 없는 경우 오류 출력
+                    if (count($result) === 0) {
+                        Log::error('no data!');
+                        break;
+                    }
+                    $this->nextPageToken = $result['nextPageToken'];
+                    $nodes = $result['medias'];
+                    foreach ($nodes as $node) {
+                        try {
+                            $article = $this->article->where([
+                                'media_id' => $media->id,
+                                'url' => $this->twitterUrl . $node->getMediaId()
+                            ])->first();
 
-                    $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
-                    $id = Carbon::parse($date)->getTimestamp() * -1;
-                    $has_media = false;
+                            $date = Carbon::parse($node->getDate())->format('Y-m-d H:i:s');
+                            $id = Carbon::parse($date)->getTimestamp() * -1;
+                            $has_media = false;
 
-                    if (ArticleMediaType::isValidValue($node->getType())) {
-                        $has_media = true;
+                            if (ArticleMediaType::isValidValue($node->getMediaType())) {
+                                $has_media = true;
+                            }
+
+                            if (!$article) {
+                                $article = $this->article->create([
+                                    'id' => $id,
+                                    'media_id' => $media->id,
+                                    'article_owner_id' => $node->getOwnerId(),
+                                    'platform' => PlatformEnum::TWITTER,
+                                    'url' => $this->twitterUrl . $node->getMediaId(),
+                                    'type' => ArticleType::KEYWORD,
+                                    'keyword' => $keyword,
+                                    'title' => '',
+                                    'contents' => $node->getDescription(),
+                                    'storage_thumbnail_url' => '',
+                                    'thumbnail_url' => '',
+                                    'thumbnail_width' => 0,
+                                    'thumbnail_height' => 0,
+                                    'state' => 0,
+                                    'date' => $date,
+                                    'has_media' => $has_media
+                                ]);
+
+                                if ($node->getThumbnailUrl()) {
+                                    $this->articleMedia->create([
+                                        'article_id' => $article->id,
+                                        'type' => ArticleMediaType::IMAGE,
+                                        'storage_url' => $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images'),
+                                        'url' => $node->getThumbnailUrl(),
+                                        'width' => $node->getThumbnailWidth(),
+                                        'height' => $node->getThumbnailHeight(),
+                                    ]);
+                                }
+
+                                if ($node->getVideoUrl()) {
+                                    $this->articleMedia->create([
+                                        'article_id' => $article->id,
+                                        'type' => ArticleMediaType::VIDEO,
+                                        'url' => $node->getVideoUrl(),
+                                        'width' => $node->getThumbnailWidth(),
+                                        'height' => $node->getThumbnailHeight(),
+                                    ]);
+                                }
+                                // 수집 정보 게시자 저장
+                                $this->articleOwner->updateOrCreate(
+                                    [
+                                        'id' => (string)$node->getOwnerId(),
+                                        'platform' => PlatformEnum::TWITTER
+                                    ],
+                                    [
+                                        'name' => $node->getOwnerName(),
+                                        'url' => $node->getOwnerPageUrl(),
+                                        'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), date('Y') . '/images'),
+                                        'thumbnail_url' => $node->getOwnerImageUrl(),
+                                        'thumbnail_width' => 0,
+                                        'thumbnail_height' => 0,
+                                    ]
+                                );
+                            }
+
+                            sleep(1);
+                        } catch (\Exception $e) {
+                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                        }
                     }
 
-                    if (!$article) {
-                        $article = $this->article->create([
-                            'id' => $id,
-                            'media_id' => $media->id,
-                            'article_owner_id' => $node->getOwnerId(),
-                            'platform' => PlatformEnum::TWITTER,
-                            'url' => $this->twitterUrl . $node->getMediaId(),
-                            'type' => ArticleType::KEYWORD,
-                            'keyword' => $keyword,
-                            'title' => '',
-                            'contents' => $node->getDescription(),
-                            'storage_thumbnail_url' => '',
-                            'thumbnail_url' => '',
-                            'thumbnail_width' => 0,
-                            'thumbnail_height' => 0,
-                            'state' => 0,
-                            'date' => $date,
-                            'has_media' => $has_media
-                        ]);
-
-                        if ($node->getThumbnailUrl()) {
-                            $this->articleMedia->create([
-                                'article_id' => $article->id,
-                                'type' => ArticleMediaType::IMAGE,
-                                'storage_url' => $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images'),
-                                'url' => $node->getThumbnailUrl(),
-                                'width' => $node->getThumbnailWidth(),
-                                'height' => $node->getThumbnailHeight(),
-                            ]);
-                        }
-
-                        if ($node->getVideoUrl()) {
-                            $this->articleMedia->create([
-                                'article_id' => $article->id,
-                                'type' => ArticleMediaType::VIDEO,
-                                'url' => $node->getVideoUrl(),
-                                'width' => $node->getThumbnailWidth(),
-                                'height' => $node->getThumbnailHeight(),
-                            ]);
-                        }
-                        // 수집 정보 게시자 저장
-                        $this->articleOwner->updateOrCreate(
-                            [
-                                'id' => (string)$node->getOwnerId(),
-                                'platform' => PlatformEnum::TWITTER
-                            ],
-                            [
-                                'name' => $node->getOwnerName(),
-                                'url' => $node->getOwnerPageUrl(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), date('Y') . '/images'),
-                                'thumbnail_url' => $node->getOwnerImageUrl(),
-                                'thumbnail_width' => 0,
-                                'thumbnail_height' => 0,
-                            ]
-                        );
-                    }
-
-                    sleep(1);
-                    // } catch (\Exception $e) {
-                    //     Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
-                    // }
-                }
-
-                $this->info($this->nextPageToken);
-                // } while ($this->nextPageToken !== '');
+                    $this->info($this->nextPageToken);
+                } while ($this->nextPageToken !== '');
             }
         }
         return true;

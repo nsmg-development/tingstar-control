@@ -29,7 +29,7 @@ class InstagramService
     private string $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36';
 
     public function __construct(
-        AzureService $azureService,
+        AzureService    $azureService,
         PlatformAccount $platformAccount
     )
     {
@@ -167,7 +167,7 @@ class InstagramService
         return $this->decodeRawBodyToJson($response->body());
     }
 
-    public function requestInstagramByAccount(array $headers, string $channel, int $count = 12, string $maxId = ''): array
+    public function requestInstagramByAccount(array $headers, string $channel, int $count = 100, string $maxId = ''): array
     {
         $index = 0;
         $hasNextPage = true;

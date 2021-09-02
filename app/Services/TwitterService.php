@@ -39,27 +39,29 @@ class TwitterService
 
         $sections = $arr['data'];
         $sectionUsers = $arr['includes']['users'];
-        $sectionMedias = $arr['includes']['media'];
+        $sectionMedias = $arr['includes']['media'] ?? '';
         if (empty($sections)) {
             return $toReturn;
         }
         foreach ($sections as $section_index => $section) {
             foreach ($sectionUsers as $section_user_index => $user) {
-                foreach ($sectionMedias as $section_media_index => $media) {
-                    try {
-                        if ($section_index === $section_user_index) {
-                            if (isset($section['attachments']['media_keys'])) {
-                                foreach ($section['attachments']['media_keys'] as $media_key) {
-                                    if ($media_key === $media['media_key']) {
-                                        $medias[] = new TwitterParser((object)$section, (object)$user, (object)$media);
+                if ($sectionMedias) {
+                    foreach ($sectionMedias as $section_media_index => $media) {
+                        try {
+                            if ($section_index === $section_user_index) {
+                                if (isset($section['attachments']['media_keys'])) {
+                                    foreach ($section['attachments']['media_keys'] as $media_key) {
+                                        if ($media_key === $media['media_key']) {
+                                            $medias[] = new TwitterParser((object)$section, (object)$user, (object)$media);
+                                        }
                                     }
+                                } else {
+                                    $medias[] = new TwitterParser((object)$section, (object)$user, '');
                                 }
-                            } else {
-                                $medias[] = new TwitterParser((object)$section, (object)$user, '');
                             }
+                        } catch (\Exception $e) {
+                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
-                    } catch (\Exception $e) {
-                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                     }
                 }
             }

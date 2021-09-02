@@ -15,7 +15,7 @@ class YoutubeService
     protected string $key = "AIzaSyAEH7tvthe2cxOTPr3j2cxyDM1FjuPoAPY";
     protected string $nextPageToken = '';
 
-    const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?q={q}&type=video&part=snippet&order=date&maxResults=100&key={key}';
+    const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?q={q}&type=video&part=snippet&order=date&maxResults=50&key={key}&pageToken={pageToken}';
 
     public function getYoutube(string $keyword): array
     {
@@ -26,6 +26,7 @@ class YoutubeService
     {
         $url = str_replace('{q}', urlencode($keyword), static::MEDIA_JSON_BY_TAG);
         $url = str_replace('{key}', $this->key, $url);
+        $url = str_replace('{pageToken}', $this->nextPageToken, $url);
 
         $response = Http::get($url);
         $result = $response->body();
@@ -56,6 +57,7 @@ class YoutubeService
         }
 
         $hasNextPage = $arr['nextPageToken'];
+        $this->nextPageToken = $hasNextPage;
         $count = $arr['pageInfo']['totalResults'];
         return [
             'medias' => $medias,

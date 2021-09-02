@@ -48,11 +48,11 @@ class InstagramChannel extends Command
      */
     public function __construct(
         InstagramService $instagramService,
-        AzureService $azureService,
-        Channel $channel,
-        Article $article,
-        ArticleMedia $articleMedia,
-        ArticleOwner $articleOwner
+        AzureService     $azureService,
+        Channel          $channel,
+        Article          $article,
+        ArticleMedia     $articleMedia,
+        ArticleOwner     $articleOwner
     )
     {
         parent::__construct();
@@ -97,7 +97,7 @@ class InstagramChannel extends Command
         foreach ($channels as $channel) {
             // 반복하여 스크래핑 처리
             do {
-                $result = $this->instagramService->requestInstagramByAccount($headers, $channel->channel, 5, $this->maxId);
+                $result = $this->instagramService->requestInstagramByAccount($headers, $channel->channel, 100, $this->maxId);
 
                 if (count($result) === 0) {
                     Log::error('no data!');
