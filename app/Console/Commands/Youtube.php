@@ -48,14 +48,14 @@ class Youtube extends Command
      * @return void
      */
     public function __construct(
-        PlatformEnum $platformEnum,
+        PlatformEnum   $platformEnum,
         YoutubeService $youtubeService,
-        AzureService $azureService,
-        Article $article,
-        ArticleMedia $articleMedia,
-        Keyword $keyword,
-        Media $media,
-        ArticleOwner $articleOwner
+        AzureService   $azureService,
+        Article        $article,
+        ArticleMedia   $articleMedia,
+        Keyword        $keyword,
+        Media          $media,
+        ArticleOwner   $articleOwner
     )
     {
         parent::__construct();
@@ -90,82 +90,82 @@ class Youtube extends Command
                     return false;
                 }
 
-                // do{
-                $result = $this->youtubeService->getYoutube($keyword);
+                do {
+                    $result = $this->youtubeService->getYoutube($keyword);
 
-                // 유튜브 데이터 없는 경우 오류 출력
-                if (count($result) === 0) {
-                    Log::error('no data!');
-                    break;
-                }
-
-                $this->nextPageToken = $result['nextPageToken'];
-                $nodes = $result['medias'];
-
-                foreach ($nodes as $node) {
-                    try {
-                        $article = $this->article->where([
-                            'media_id' => $media->id,
-                            'url' => $node->getUrl()
-                        ])->first();
-
-                        if (!$article) {
-                            $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
-                            $id = Carbon::parse($date)->getTimestamp() * -1;
-                            $has_media = false;
-
-                            if ($node->getUrl()) {
-                                $has_media = true;
-                            }
-
-                            $article = $this->article->insertGetId([
-                                'id' => $id,
-                                'media_id' => $media->id,
-                                'article_owner_id' => $node->getOwnerId(),
-                                'platform' => PlatformEnum::YOUTUBE,
-                                'url' => $node->getUrl(),
-                                'type' => ArticleType::KEYWORD,
-                                'keyword' => $keyword,
-                                'title' => $node->getTitle(),
-                                'contents' => $node->getDescription(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images'),
-                                'thumbnail_url' => $node->getThumbnailsUrl(),
-                                'thumbnail_width' => $node->getThumbnailWidth(),
-                                'thumbnail_height' => $node->getThumbnailHeight(),
-                                'state' => 0,
-                                'date' => $date,
-                                'has_media' => $has_media
-                            ]);
-
-                            if ($node->getUrl()) {
-                                $this->articleMedia->create([
-                                    'article_id' => $id,
-                                    'type' => ArticleMediaType::VIDEO,
-                                    'url' => $node->getUrl(),
-                                    'width' => 0,
-                                    'height' => 0,
-                                ]);
-                            }
-                            // 수집 정보 게시자 저장
-                            $this->articleOwner->updateOrCreate(
-                                [
-                                    'id' => (string)$node->getOwnerId(),
-                                    'platform' => PlatformEnum::YOUTUBE
-                                ],
-                                [
-                                    'name' => $node->getOwnerName()
-                                ]
-                            );
-                        }
-
-                        sleep(1);
-                    } catch (\Exception $e) {
-                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    // 유튜브 데이터 없는 경우 오류 출력
+                    if (count($result) === 0) {
+                        Log::error('no data!');
+                        break;
                     }
-                }
 
-                $this->info($this->nextPageToken);
-                // } while ($this->nextPageToken !== '');
+                    $this->nextPageToken = $result['nextPageToken'];
+                    $nodes = $result['medias'];
+
+                    foreach ($nodes as $node) {
+                        try {
+                            $article = $this->article->where([
+                                'media_id' => $media->id,
+                                'url' => $node->getUrl()
+                            ])->first();
+
+                            if (!$article) {
+                                $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                                $id = Carbon::parse($date)->getTimestamp() * -1;
+                                $has_media = false;
+
+                                if ($node->getUrl()) {
+                                    $has_media = true;
+                                }
+
+                                $article = $this->article->insertGetId([
+                                    'id' => $id,
+                                    'media_id' => $media->id,
+                                    'article_owner_id' => $node->getOwnerId(),
+                                    'platform' => PlatformEnum::YOUTUBE,
+                                    'url' => $node->getUrl(),
+                                    'type' => ArticleType::KEYWORD,
+                                    'keyword' => $keyword,
+                                    'title' => $node->getTitle(),
+                                    'contents' => $node->getDescription(),
+                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images'),
+                                    'thumbnail_url' => $node->getThumbnailsUrl(),
+                                    'thumbnail_width' => $node->getThumbnailWidth(),
+                                    'thumbnail_height' => $node->getThumbnailHeight(),
+                                    'state' => 0,
+                                    'date' => $date,
+                                    'has_media' => $has_media
+                                ]);
+
+                                if ($node->getUrl()) {
+                                    $this->articleMedia->create([
+                                        'article_id' => $id,
+                                        'type' => ArticleMediaType::VIDEO,
+                                        'url' => $node->getUrl(),
+                                        'width' => 0,
+                                        'height' => 0,
+                                    ]);
+                                }
+                                // 수집 정보 게시자 저장
+                                $this->articleOwner->updateOrCreate(
+                                    [
+                                        'id' => (string)$node->getOwnerId(),
+                                        'platform' => PlatformEnum::YOUTUBE
+                                    ],
+                                    [
+                                        'name' => $node->getOwnerName()
+                                    ]
+                                );
+                            }
+
+                            sleep(1);
+                        } catch (\Exception $e) {
+                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                        }
+                    }
+
+                    $this->info($this->nextPageToken);
+                } while ($this->nextPageToken !== '');
             }
         }
         return true;

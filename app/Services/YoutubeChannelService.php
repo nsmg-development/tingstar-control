@@ -13,7 +13,7 @@ class YoutubeChannelService
     protected string $key = "AIzaSyAEH7tvthe2cxOTPr3j2cxyDM1FjuPoAPY";
     protected string $nextPageToken = '';
 
-    const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?channelId={channelId}&type=video&part=snippet&order=date&maxResults=5&key={key}';
+    const MEDIA_JSON_BY_TAG = 'https://www.googleapis.com/youtube/v3/search?channelId={channelId}&type=video&part=snippet&order=date&maxResults=50&key={key}&pageToken={pageToken}';
 
     public function getYoutube(string $channel): array
     {
@@ -24,6 +24,7 @@ class YoutubeChannelService
     {
         $url = str_replace('{channelId}', $channel, static::MEDIA_JSON_BY_TAG);
         $url = str_replace('{key}', $this->key, $url);
+        $url = str_replace('{pageToken}', $this->nextPageToken, $url);
 
         $response = Http::get($url);
         $result = $response->body();
@@ -51,14 +52,15 @@ class YoutubeChannelService
                 Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
             }
         }
-        $hasNextPage = $arr['nextPageToken'];
-
+        $hasNextPage = $arr['nextPageToken'] ?? '';
+        $hasPrevPage = $arr['prevPageToken'] ?? '';
         $count = $arr['pageInfo']['totalResults'];
 
         return [
             'medias' => $medias,
             'count' => $count,
             'nextPageToken' => $hasNextPage,
+            'prevPageToken' => $hasPrevPage
         ];
 
     }

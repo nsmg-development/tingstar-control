@@ -41,6 +41,7 @@ class YoutubeChannel extends Command
     protected Media $media;
     protected ArticleOwner $articleOwner;
     protected string $nextPageToken;
+    protected string $prevPageToken;
 
     /**
      * Create a new command instance.
@@ -48,14 +49,14 @@ class YoutubeChannel extends Command
      * @return void
      */
     public function __construct(
-        PlatformEnum $platformEnum,
+        PlatformEnum          $platformEnum,
         YoutubeChannelService $youtubeChannelService,
-        AzureService $azureService,
-        Article $article,
-        ArticleMedia $articleMedia,
-        Channel $channel,
-        Media $media,
-        ArticleOwner $articleOwner
+        AzureService          $azureService,
+        Article               $article,
+        ArticleMedia          $articleMedia,
+        Channel               $channel,
+        Media                 $media,
+        ArticleOwner          $articleOwner
     )
     {
         parent::__construct();
@@ -79,7 +80,6 @@ class YoutubeChannel extends Command
         $medias = $this->media->with(['channels' => function ($query) {
             $query->where('platform', PlatformEnum::YOUTUBE)->where('state', 1);
         }])->get();
-
         foreach ($medias as $media) {
             foreach ($media->channels as $channel) {
                 $channel = $channel->channel;
@@ -90,81 +90,82 @@ class YoutubeChannel extends Command
                     return false;
                 }
 
-                // do{
-                $result = $this->youtubeChannelService->getYoutube($channel);
+                do {
+                    $result = $this->youtubeChannelService->getYoutube($channel);
 
-                // 유튜브 데이터 없는 경우 오류 출력
-                if (count($result) === 0) {
-                    Log::error('no data!');
-                    break;
-                }
-
-                $this->nextPageToken = $result['nextPageToken'];
-                $nodes = $result['medias'];
-
-                foreach ($nodes as $node) {
-                    try {
-                        $article = $this->article->where([
-                            'media_id' => $media->id,
-                            'url' => $node->getUrl()
-                        ])->first();
-
-                        if (!$article) {
-                            $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
-                            $id = Carbon::parse($date)->getTimestamp() * -1;
-                            $has_media = false;
-
-                            if ($node->getUrl()) {
-                                $has_media = true;
-                            }
-
-                            $article = $this->article->create([
-                                'media_id' => $media->id,
-                                'article_owner_id' => $node->getOwnerId(),
-                                'platform' => PlatformEnum::YOUTUBE,
-                                'url' => $node->getUrl(),
-                                'type' => ArticleType::CHANNEL,
-                                'channel' => $channel,
-                                'title' => $node->getTitle(),
-                                'contents' => $node->getDescription(),
-                                'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images'),
-                                'thumbnail_url' => $node->getThumbnailsUrl(),
-                                'thumbnail_width' => $node->getThumbnailWidth(),
-                                'thumbnail_height' => $node->getThumbnailHeight(),
-                                'state' => 0,
-                                'date' => $date,
-                                'has_media' => $has_media
-                            ]);
-
-                            if ($node->getUrl()) {
-                                $this->articleMedia->create([
-                                    'article_id' => $id,
-                                    'type' => ArticleMediaType::VIDEO,
-                                    'url' => $node->getUrl(),
-                                    'width' => 0,
-                                    'height' => 0,
-                                ]);
-                            }
-                            // 수집 정보 게시자 저장
-                            $this->articleOwner->updateOrCreate(
-                                [
-                                    'id' => (string)$node->getOwnerId(),
-                                    'platform' => PlatformEnum::YOUTUBE
-                                ],
-                                [
-                                    'name' => $node->getOwnerName()
-                                ]
-                            );
-                        }
-
-                        sleep(1);
-                    } catch (\Exception $e) {
-                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                    // 유튜브 데이터 없는 경우 오류 출력
+                    if (count($result) === 0) {
+                        Log::error('no data!');
+                        break;
                     }
-                }
 
-                $this->info($this->nextPageToken);
-                // } while ($this->nextPageToken !== '');
+                    $this->nextPageToken = $result['nextPageToken'];
+                    $this->prevPageToken = $result['prevPageToken'];
+                    $nodes = $result['medias'];
+
+                    foreach ($nodes as $node) {
+                        try {
+                            $article = $this->article->where([
+                                'media_id' => $media->id,
+                                'url' => $node->getUrl()
+                            ])->first();
+
+                            if (!$article) {
+                                $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                                $id = Carbon::parse($date)->getTimestamp() * -1;
+                                $has_media = false;
+
+                                if ($node->getUrl()) {
+                                    $has_media = true;
+                                }
+                                $article = $this->article->create([
+                                    'id' => $id,
+                                    'media_id' => $media->id,
+                                    'article_owner_id' => $node->getOwnerId(),
+                                    'platform' => PlatformEnum::YOUTUBE,
+                                    'url' => $node->getUrl(),
+                                    'type' => ArticleType::CHANNEL,
+                                    'channel' => $channel,
+                                    'title' => $node->getTitle(),
+                                    'contents' => $node->getDescription(),
+                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images'),
+                                    'thumbnail_url' => $node->getThumbnailsUrl(),
+                                    'thumbnail_width' => $node->getThumbnailWidth(),
+                                    'thumbnail_height' => $node->getThumbnailHeight(),
+                                    'state' => 0,
+                                    'date' => $date,
+                                    'has_media' => $has_media
+                                ]);
+
+                                if ($node->getUrl()) {
+                                    $this->articleMedia->create([
+                                        'article_id' => $id,
+                                        'type' => ArticleMediaType::VIDEO,
+                                        'url' => $node->getUrl(),
+                                        'width' => 0,
+                                        'height' => 0,
+                                    ]);
+                                }
+                                // 수집 정보 게시자 저장
+                                $this->articleOwner->updateOrCreate(
+                                    [
+                                        'id' => (string)$node->getOwnerId(),
+                                        'platform' => PlatformEnum::YOUTUBE
+                                    ],
+                                    [
+                                        'name' => $node->getOwnerName()
+                                    ]
+                                );
+                            }
+
+                            sleep(1);
+                        } catch (\Exception $e) {
+                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                        }
+                    }
+
+                    $this->info($this->nextPageToken);
+                } while (!$this->nextPageToken);
             }
         }
         return true;
