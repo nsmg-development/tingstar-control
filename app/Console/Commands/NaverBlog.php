@@ -101,7 +101,13 @@ class NaverBlog extends Command
                         ])->first();
 
                         if (!$article) {
+
+                            $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                            $id = Carbon::parse($date)->getTimestamp() * -1;
+                            $has_media = false;
+
                             $this->article->create([
+                                'id' => $id,
                                 'media_id' => $media->id,
                                 'article_owner_id' => $node['bloggername'],
                                 'platform' => PlatformEnum::NAVERBLOG,
@@ -116,6 +122,7 @@ class NaverBlog extends Command
                                 'thumbnail_height' => 0,
                                 'state' => 0,
                                 'date' => Carbon::parse($node['postdate'])->format('Y-m-d H:i:s'),
+                                'has_media' => false,
                             ]);
                         }
 

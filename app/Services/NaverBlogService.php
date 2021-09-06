@@ -24,5 +24,7 @@ class NaverBlogService
             'sort' => $this->sort
         ]);
         return $response->json();
+        // $response = Http::get('https://blog.naver.com/mi898898');
+        // dd($response->body());
     }
 }
