@@ -90,6 +90,9 @@ class Youtube extends Command
                     return false;
                 }
 
+                $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::YOUTUBE)->orderBy('id')->first();
+
+                $i = 0;
                 do {
                     $result = $this->youtubeService->getYoutube($keyword);
 
@@ -104,6 +107,12 @@ class Youtube extends Command
 
                     foreach ($nodes as $node) {
                         try {
+
+                            if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node->getUrl()) {
+                                $this->info('stop!!!');
+                                break 2;
+                            }
+
                             $article = $this->article->where([
                                 'media_id' => $media->id,
                                 'url' => $node->getUrl()
@@ -157,15 +166,19 @@ class Youtube extends Command
                                     ]
                                 );
                             }
-
+                            $i++;
                             sleep(1);
                         } catch (\Exception $e) {
                             Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
                     }
-
+                    if ($this->nextPageToken == '') {
+                        break 2;
+                    }
+                    $this->info($i . ':' . $node->getUrl());
+                    $this->info($keyword);
                     $this->info($this->nextPageToken);
-                } while ($this->nextPageToken !== '');
+                } while ($i < 10000);
             }
         }
         return true;

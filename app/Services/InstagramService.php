@@ -124,7 +124,7 @@ class InstagramService
             }
         }
 
-        $maxId = $arr['data']['recent']['next_max_id'];
+        $maxId = $arr['data']['recent']['next_max_id'] ?? '';
         $hasNextPage = $arr['data']['recent']['more_available'];
         $count = $arr['data']['media_count'];
 
@@ -195,7 +195,6 @@ class InstagramService
             $response = Http::withHeaders($headers)->get($url);
 
             $result = $this->decodeRawBodyToJson($response->body());
-
             $nodes = $result['data']['user']['edge_owner_to_timeline_media']['edges'];
 
             foreach ($nodes as $mediaArray) {

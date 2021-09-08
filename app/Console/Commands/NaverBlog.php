@@ -82,6 +82,7 @@ class NaverBlog extends Command
         foreach ($medias as $media) {
             foreach ($media->keywords as $keyword) {
                 $keyword = $keyword->keyword;
+
                 if (!$keyword) {
                     Log::error("not found available keywords");
                     return false;
@@ -89,12 +90,20 @@ class NaverBlog extends Command
 
                 $nodes = $this->naverBlogService->getNaverBlog($keyword);
 
+                $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::NAVERBLOG)->orderBy('id')->first();
+
                 if (count($nodes) === 0) {
                     Log::error('no data!');
                     break;
                 }
                 foreach ($nodes['items'] as $node) {
                     try {
+
+                        if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node['link']) {
+                            $this->info('stop!!!');
+                            break;
+                        }
+
                         $article = $this->article->where([
                             'media_id' => $media->id,
                             'url' => $node['link']
