@@ -53,14 +53,12 @@ class YoutubeChannelService
             }
         }
         $hasNextPage = $arr['nextPageToken'] ?? '';
-        $hasPrevPage = $arr['prevPageToken'] ?? '';
         $count = $arr['pageInfo']['totalResults'];
 
         return [
             'medias' => $medias,
             'count' => $count,
             'nextPageToken' => $hasNextPage,
-            'prevPageToken' => $hasPrevPage
         ];
 
     }

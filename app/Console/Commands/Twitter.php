@@ -92,6 +92,9 @@ class Twitter extends Command
                     return false;
                 }
 
+                $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::TWITTER)->orderBy('id')->first();
+
+                $i = 0;
                 do {
                     $result = $this->twitterService->getTwitter($keyword);
                     // 유튜브 데이터 없는 경우 오류 출력
@@ -101,22 +104,30 @@ class Twitter extends Command
                     }
                     $this->nextPageToken = $result['nextPageToken'];
                     $nodes = $result['medias'];
+
                     foreach ($nodes as $node) {
                         try {
+
+                            if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $this->twitterUrl . $node->getMediaId()) {
+                                $this->info('stop!!!');
+                                break 2;
+                            }
+
                             $article = $this->article->where([
                                 'media_id' => $media->id,
                                 'url' => $this->twitterUrl . $node->getMediaId()
                             ])->first();
 
-                            $date = Carbon::parse($node->getDate())->format('Y-m-d H:i:s');
-                            $id = Carbon::parse($date)->getTimestamp() * -1;
-                            $has_media = false;
-
-                            if (ArticleMediaType::isValidValue($node->getMediaType())) {
-                                $has_media = true;
-                            }
-
                             if (!$article) {
+
+                                $date = Carbon::parse($node->getDate())->format('Y-m-d H:i:s');
+                                $id = Carbon::parse($date)->getTimestamp() * -1;
+                                $has_media = false;
+
+                                if (ArticleMediaType::isValidValue($node->getMediaType())) {
+                                    $has_media = true;
+                                }
+
                                 $article = $this->article->create([
                                     'id' => $id,
                                     'media_id' => $media->id,
@@ -172,15 +183,19 @@ class Twitter extends Command
                                     ]
                                 );
                             }
-
+                            $i++;
                             sleep(1);
                         } catch (\Exception $e) {
                             Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
                     }
-
+                    if ($this->nextPageToken == '') {
+                        break 2;
+                    }
+                    $this->info($i . ':' . $this->twitterUrl . $node->getMediaId());
+                    $this->info($keyword);
                     $this->info($this->nextPageToken);
-                } while ($this->nextPageToken !== '');
+                } while ($i < 10000);
             }
         }
         return true;

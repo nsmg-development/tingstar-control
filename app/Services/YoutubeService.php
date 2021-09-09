@@ -56,7 +56,7 @@ class YoutubeService
             }
         }
 
-        $hasNextPage = $arr['nextPageToken'];
+        $hasNextPage = $arr['nextPageToken'] ?? '';
         $this->nextPageToken = $hasNextPage;
         $count = $arr['pageInfo']['totalResults'];
         return [

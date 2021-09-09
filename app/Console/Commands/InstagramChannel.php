@@ -9,6 +9,7 @@ use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\ArticleOwner;
 use App\Models\Channel;
+use App\Models\Media;
 use App\Services\AzureService;
 use App\Services\InstagramService;
 use Carbon\Carbon;
@@ -38,6 +39,7 @@ class InstagramChannel extends Command
     protected Article $article;
     protected ArticleMedia $articleMedia;
     protected ArticleOwner $articleOwner;
+    protected Media $media;
 
     protected string $maxId = '';
 
@@ -52,7 +54,8 @@ class InstagramChannel extends Command
         Channel          $channel,
         Article          $article,
         ArticleMedia     $articleMedia,
-        ArticleOwner     $articleOwner
+        ArticleOwner     $articleOwner,
+        Media            $media
     )
     {
         parent::__construct();
@@ -63,6 +66,7 @@ class InstagramChannel extends Command
         $this->article = $article;
         $this->articleMedia = $articleMedia;
         $this->articleOwner = $articleOwner;
+        $this->media = $media;
     }
 
     /**
@@ -86,92 +90,110 @@ class InstagramChannel extends Command
         $headers = $this->instagramService->initInstagram($login_id, $login_password);
 
         // channel 정보 DB에서 가져오기
-        $channels = $this->channel->active(PlatformEnum::INSTAGRAM)->get();
+        // $channels = $this->channel->active(PlatformEnum::INSTAGRAM)->get();
 
-        // 채널 정보 가져오기 오류 발생
-        if (count($channels) === 0) {
-            Log::error("not found available channels");
-            return false;
-        }
+        $medias = $this->media->with(['channels' => function ($query) {
+            $query->where('platform', PlatformEnum::INSTAGRAM)->where('state', 1);
+        }])->get();
 
-        foreach ($channels as $channel) {
+        foreach ($medias as $media) {
             // 반복하여 스크래핑 처리
-            do {
-                $result = $this->instagramService->requestInstagramByAccount($headers, $channel->channel, 100, $this->maxId);
-
-                if (count($result) === 0) {
-                    Log::error('no data!');
-                    break;
+            foreach ($media->channels as $channel) {
+                $channel = $channel->channel;
+                // 채널 정보 가져오기 오류 발생
+                if (!$channel) {
+                    Log::error("not found available channels");
+                    return false;
                 }
 
-                $this->maxId = $result['maxId'];
-                $nodes = $result['medias'];
+                $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::INSTAGRAM)->orderBy('id')->first();
 
-                foreach ($nodes as $node) {
-                    // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
-                    // try {
-                    $article = $this->article->where([
-                        'media_id' => 1,
-                        'url' => $node->getLink()
-                    ])->first();
+                $i = 0;
+                do {
+                    $result = $this->instagramService->requestInstagramByAccount($headers, $channel, 100, $this->maxId);
 
-                    if (!$article) {
-                        $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
-                        $id = Carbon::parse($date)->getTimestamp() * -1;
-                        $has_media = false;
-
-                        if (ArticleMediaType::isValidValue($node->getType()) || $node->getType() === 'sidecar') {
-                            $has_media = true;
-                        }
-
-                        // 수집 정보 저장
-                        $article = $this->article->create([
-                            'id' => $id,
-                            'media_id' => 1,
-                            'platform' => PlatformEnum::INSTAGRAM,
-                            'article_owner_id' => $node->getOwnerId(),
-                            'url' => $node->getLink(),
-                            'type' => ArticleType::CHANNEL,
-                            'channel' => $channel->channel,
-                            'title' => '',
-                            'contents' => $node->getCaption(),
-                            'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], date('Y') . '/images'),
-                            'thumbnail_url' => $node->getImageThumbnail()['url'],
-                            'thumbnail_width' => $node->getImageThumbnail()['width'],
-                            'thumbnail_height' => $node->getImageThumbnail()['height'],
-                            'hashtag' => $node->getHashTag(),
-                            'state' => 0,
-                            'date' => $date,
-                            'has_media' => $has_media
-                        ]);
-
-                        // 수집 정보 게시자 저장
-                        $this->articleOwner->updateOrCreate(
-                            [
-                                'id' => (string)$node->getOwnerId(),
-                                'platform' => PlatformEnum::INSTAGRAM
-                            ],
-                            [
-                                'name' => $node->getOwner()['username']
-                            ]
-                        );
-
-                        // $this->info('Created::' . $node->getLink());
-
-                        $articleMedias = $this->instagramService->getArticleMedias($id, $node->getType(), $node);
-                        if (count($articleMedias) > 0) {
-                            $this->articleMedia->insert($articleMedias);
-                        }
+                    if (count($result) === 0) {
+                        Log::error('no data!');
+                        break;
                     }
 
-                    sleep(1);
-                    // } catch (\Exception $e) {
-                    //     Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
-                    // }
-                }
+                    $this->maxId = $result['maxId'];
+                    $nodes = $result['medias'];
 
-                // $this->info($this->maxId);
-            } while ($this->maxId !== '');
+                    foreach ($nodes as $node) {
+                        // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
+                        try {
+
+                            if ($lastRow->media_id === $media->id && $lastRow->channel === $channel && $lastRow->url === $node->getLink()) {
+                                $this->info('stop!!!');
+                                break 2;
+                            }
+
+                            $article = $this->article->where([
+                                'media_id' => $media->id,
+                                'url' => $node->getLink()
+                            ])->first();
+
+                            if (!$article) {
+                                $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
+                                $id = Carbon::parse($date)->getTimestamp() * -1;
+                                $has_media = false;
+
+                                if (ArticleMediaType::isValidValue($node->getType()) || $node->getType() === 'sidecar') {
+                                    $has_media = true;
+                                }
+
+                                // 수집 정보 저장
+                                $article = $this->article->create([
+                                    'id' => $id,
+                                    'media_id' => $media->id,
+                                    'platform' => PlatformEnum::INSTAGRAM,
+                                    'article_owner_id' => $node->getOwnerId(),
+                                    'url' => $node->getLink(),
+                                    'type' => ArticleType::CHANNEL,
+                                    'channel' => $channel,
+                                    'title' => '',
+                                    'contents' => $node->getCaption(),
+                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], date('Y') . '/images'),
+                                    'thumbnail_url' => $node->getImageThumbnail()['url'],
+                                    'thumbnail_width' => $node->getImageThumbnail()['width'],
+                                    'thumbnail_height' => $node->getImageThumbnail()['height'],
+                                    'hashtag' => $node->getHashTag(),
+                                    'state' => 0,
+                                    'date' => $date,
+                                    'has_media' => $has_media
+                                ]);
+
+                                // 수집 정보 게시자 저장
+                                $this->articleOwner->updateOrCreate(
+                                    [
+                                        'id' => (string)$node->getOwnerId(),
+                                        'platform' => PlatformEnum::INSTAGRAM
+                                    ],
+                                    [
+                                        'name' => $node->getOwner()['username']
+                                    ]
+                                );
+
+                                $articleMedias = $this->instagramService->getArticleMedias($id, $node->getType(), $node);
+                                if (count($articleMedias) > 0) {
+                                    $this->articleMedia->insert($articleMedias);
+                                }
+                            }
+                            $i++;
+                            sleep(1);
+                        } catch (\Exception $e) {
+                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                        }
+                    }
+                    if ($this->maxId == '') {
+                        break 2;
+                    }
+                    $this->info($i . ':' . $node->getLink());
+                    $this->info($channel);
+                    $this->info($this->maxId);
+                } while ($i < 10000);
+            }
         }
         return true;
     }

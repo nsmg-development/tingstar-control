@@ -860,6 +860,8 @@ class InstagramMedia extends AbstractModel
         if (isset($caption) && !empty($caption)) {
             preg_match_all('/#([\p{Pc}\p{N}\p{L}\p{Mn}]+)/u', $caption, $matches);
             return trim(implode(" ", $matches[0]));
+        } else {
+            return '';
         }
     }
 

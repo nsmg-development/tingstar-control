@@ -41,7 +41,6 @@ class YoutubeChannel extends Command
     protected Media $media;
     protected ArticleOwner $articleOwner;
     protected string $nextPageToken;
-    protected string $prevPageToken;
 
     /**
      * Create a new command instance.
@@ -80,6 +79,7 @@ class YoutubeChannel extends Command
         $medias = $this->media->with(['channels' => function ($query) {
             $query->where('platform', PlatformEnum::YOUTUBE)->where('state', 1);
         }])->get();
+
         foreach ($medias as $media) {
             foreach ($media->channels as $channel) {
                 $channel = $channel->channel;
@@ -90,6 +90,9 @@ class YoutubeChannel extends Command
                     return false;
                 }
 
+                $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::YOUTUBE)->orderBy('id')->first();
+
+                $i = 0;
                 do {
                     $result = $this->youtubeChannelService->getYoutube($channel);
 
@@ -100,11 +103,16 @@ class YoutubeChannel extends Command
                     }
 
                     $this->nextPageToken = $result['nextPageToken'];
-                    $this->prevPageToken = $result['prevPageToken'];
                     $nodes = $result['medias'];
 
                     foreach ($nodes as $node) {
                         try {
+
+                            if ($lastRow->media_id === $media->id && $lastRow->channel === $channel && $lastRow->url === $node->getUrl()) {
+                                $this->info('stop!!!');
+                                break 2;
+                            }
+
                             $article = $this->article->where([
                                 'media_id' => $media->id,
                                 'url' => $node->getUrl()
@@ -118,6 +126,7 @@ class YoutubeChannel extends Command
                                 if ($node->getUrl()) {
                                     $has_media = true;
                                 }
+
                                 $article = $this->article->create([
                                     'id' => $id,
                                     'media_id' => $media->id,
@@ -157,13 +166,17 @@ class YoutubeChannel extends Command
                                     ]
                                 );
                             }
-
+                            $i++;
                             sleep(1);
                         } catch (\Exception $e) {
                             Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
                     }
-
+                    if ($this->nextPageToken == '') {
+                        break 2;
+                    }
+                    $this->info($i . ':' . $node->getUrl());
+                    $this->info($channel);
                     $this->info($this->nextPageToken);
                 } while (!$this->nextPageToken);
             }

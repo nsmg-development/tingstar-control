@@ -14,6 +14,7 @@ use App\Services\AzureService;
 use App\Services\InstagramService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -49,12 +50,12 @@ class Instagram extends Command
      */
     public function __construct(
         InstagramService $instagramService,
-        AzureService $azureService,
-        Article $article,
-        ArticleMedia $articleMedia,
-        Keyword $keyword,
-        Media $media,
-        ArticleOwner $articleOwner
+        AzureService     $azureService,
+        Article          $article,
+        ArticleMedia     $articleMedia,
+        Keyword          $keyword,
+        Media            $media,
+        ArticleOwner     $articleOwner
     )
     {
         parent::__construct();
@@ -75,21 +76,18 @@ class Instagram extends Command
     public function handle()
     {
         // $resized_image = $this->azureService->AzureUploadImage("https://i.ytimg.com/vi/yU3qEoRSUgI/hqdefault.jpg", "image", "300", "400");
-
         // 인스타그램 로그인 계정 DB 참조
-        $platformAccount = $this->instagramService->getPlatformAccount(PlatformEnum::INSTAGRAM, 0);
+        $platformAccount = $this->instagramService->getPlatformAccount(PlatformEnum::INSTAGRAM, 1000);
         if (!$platformAccount) {
             Log::error("not found available platform account");
             return false;
         }
-
         $login_id = $platformAccount->login_id;
         $login_password = $platformAccount->login_password;
 
         $medias = $this->media->with(['keywords' => function ($query) {
             $query->where('platform', PlatformEnum::INSTAGRAM)->where('state', 1);
         }])->get();
-
 
         // 스크래핑 헤더 캐싱
         $headers = $this->instagramService->initInstagram($login_id, $login_password);
@@ -110,7 +108,10 @@ class Instagram extends Command
                     return false;
                 }
 
+                $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::INSTAGRAM)->orderBy('id')->first();
+
                 // 최근 게시물로(recent nodes) 부터 반복하여 스크래핑 처리
+                $i = 0;
                 do {
                     $scraped = $this->instagramService->requestInstagramByKeyword($headers, $keyword, $this->maxId);
 
@@ -120,10 +121,18 @@ class Instagram extends Command
                         Log::error('no data!');
                         break;
                     }
+
                     $this->maxId = $result['maxId'];
                     $nodes = $result['medias'];
+
                     foreach ($nodes as $node) {
                         try {
+
+                            if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node->getUrl()) {
+                                $this->info('stop!!!');
+                                break 2;
+                            }
+
                             $article = $this->article->where([
                                 'media_id' => $media->id,
                                 'url' => $node->getUrl()
@@ -178,20 +187,23 @@ class Instagram extends Command
                                     ]);
                                 }
                             }
-
+                            $i++;
                             sleep(1);
                         } catch (\Exception $e) {
                             Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
+                    } //node for
+                    if ($this->maxId == '') {
+                        break 2;
                     }
+                    $this->info($i . ':' . $node->getUrl());
+                    $this->info($keyword);
                     $this->info($this->maxId);
-                } while ($this->maxId !== '');
+                } while ($i < 10000);
             }
         }
-
-
         // 계정 사용횟수 업데이트
-        $platformAccount->increments('use_count');
+        $platformAccount->increment('use_count');
 
         return true;
     }
