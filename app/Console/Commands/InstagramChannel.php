@@ -77,7 +77,7 @@ class InstagramChannel extends Command
     public function handle()
     {
         // 인스타그램 로그인 계정 DB 참조
-        $platformAccount = $this->instagramService->getPlatformAccount(PlatformEnum::INSTAGRAM, 0);
+        $platformAccount = $this->instagramService->getPlatformAccount(PlatformEnum::INSTAGRAM, 1000);
         if (!$platformAccount) {
             Log::error("not found available platform account");
             return false;
@@ -124,9 +124,11 @@ class InstagramChannel extends Command
                         // ArticleMediaType::getValueByName($node->getSidecarMedias()[0]->getType());
                         try {
 
-                            if ($lastRow->media_id === $media->id && $lastRow->channel === $channel && $lastRow->url === $node->getLink()) {
-                                $this->info('stop!!!');
-                                break 2;
+                            if($lastRow) {
+                                if ($lastRow->media_id === $media->id && $lastRow->channel === $channel && $lastRow->url === $node->getLink()) {
+                                    $this->info('stop!!!');
+                                    break 2;
+                                }
                             }
 
                             $article = $this->article->where([

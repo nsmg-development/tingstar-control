@@ -11,8 +11,10 @@ use App\Models\Keyword;
 use App\Models\Media;
 use App\Services\AzureService;
 use App\Services\NaverBlogService;
+use App\Services\OpenGraph;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class NaverBlog extends Command
@@ -40,6 +42,7 @@ class NaverBlog extends Command
     protected ArticleOwner $articleOwner;
     protected string $nextPageToken;
     protected NaverBlogService $naverBlogService;
+    protected string $baseUrl = "https://blog.naver.com";
 
     /**
      * Create a new command instance.
@@ -47,13 +50,13 @@ class NaverBlog extends Command
      * @return void
      */
     public function __construct(
-        PlatformEnum $platformEnum,
-        AzureService $azureService,
-        Article $article,
-        ArticleMedia $articleMedia,
-        Keyword $keyword,
-        Media $media,
-        ArticleOwner $articleOwner,
+        PlatformEnum     $platformEnum,
+        AzureService     $azureService,
+        Article          $article,
+        ArticleMedia     $articleMedia,
+        Keyword          $keyword,
+        Media            $media,
+        ArticleOwner     $articleOwner,
         NaverBlogService $naverBlogService
     )
     {
@@ -78,7 +81,6 @@ class NaverBlog extends Command
         $medias = $this->media->with(['keywords' => function ($query) {
             $query->where('platform', PlatformEnum::NAVERBLOG)->where('state', 1);
         }])->get();
-
         foreach ($medias as $media) {
             foreach ($media->keywords as $keyword) {
                 $keyword = $keyword->keyword;
@@ -92,69 +94,93 @@ class NaverBlog extends Command
 
                 $lastRow = $this->article->where('media_id', $media->id)->where('platform', PlatformEnum::NAVERBLOG)->orderBy('id')->first();
 
-                if (count($nodes) === 0) {
-                    Log::error('no data!');
-                    break;
-                }
-                foreach ($nodes['items'] as $node) {
-                    try {
-
-                        if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node['link']) {
-                            $this->info('stop!!!');
-                            break;
-                        }
-
-                        $article = $this->article->where([
-                            'media_id' => $media->id,
-                            'url' => $node['link']
-                        ])->first();
-
-                        if (!$article) {
-
-                            $date = Carbon::parse($node->getCreatedTime())->format('Y-m-d H:i:s');
-                            $id = Carbon::parse($date)->getTimestamp() * -1;
-                            $has_media = false;
-
-                            $this->article->create([
-                                'id' => $id,
-                                'media_id' => $media->id,
-                                'article_owner_id' => $node['bloggername'],
-                                'platform' => PlatformEnum::NAVERBLOG,
-                                'url' => $node['link'],
-                                'type' => ArticleType::KEYWORD,
-                                'keyword' => $keyword,
-                                'title' => str_replace('&quot;', '"', strip_tags($node['title'])),
-                                'contents' => str_replace('&quot;', '"', strip_tags($node['description'])),
-                                'storage_thumbnail_url' => '',
-                                'thumbnail_url' => '',
-                                'thumbnail_width' => 0,
-                                'thumbnail_height' => 0,
-                                'state' => 0,
-                                'date' => Carbon::parse($node['postdate'])->format('Y-m-d H:i:s'),
-                                'has_media' => false,
-                            ]);
-                        }
-
-                        // 수집 정보 게시자 저장
-                        $this->articleOwner->updateOrCreate(
-                            [
-                                'id' => $node['bloggername'],
-                                'platform' => PlatformEnum::NAVERBLOG
-                            ],
-                            [
-                                'name' => $node['bloggername']
-                            ]
-                        );
-
-                        // 썸네일 어떤 방식으로 가져올지
-                        // $dom = new \DOMDocument();
-
-                        // @$dom->loadHTML(file_get_contents($node['link']));
-                        // $frame = $dom->getElementById('mainFrame');
-                    } catch (\Exception $e) {
-                        Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                $i = 0;
+                do {
+                    if (count($nodes) === 0) {
+                        Log::error('no data!');
+                        break;
                     }
-                }
+                    foreach ($nodes['items'] as $node) {
+                        try {
+                            if ($lastRow) {
+                                if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node['link']) {
+                                    $this->info('stop!!!');
+                                    break 2;
+                                }
+                            }
+
+                            $article = $this->article->where([
+                                'media_id' => $media->id,
+                                'url' => $node['link']
+                            ])->first();
+
+                            if (!$article) {
+
+                                $date = Carbon::parse($node['postdate'])->format('Y-m-d H:i:s');
+                                $id = Carbon::parse($date)->getTimestamp() * -1;
+                                $has_media = false;
+
+                                $dom = new \DOMDocument();
+                                @$dom->loadHTML(file_get_contents($node['link']));
+                                $this->info($node['link']);
+                                $frame = $dom->getElementById('mainFrame');
+
+                                if($frame) {
+                                    $url = $this->baseUrl . $frame->getAttribute('src');
+                                } else {
+                                    $url = $node['link'];
+                                }
+
+                                // $dom2 = new \DOMDocument();
+                                // @$dom2->load($this->baseUrl . $frame);
+                                // $img = $dom2->getElementsByTagName('img');
+
+                                $response = Http::get($url);
+                                $ogTag = trim(preg_replace('/\r|\n|\r\n|\t/i', ' ', $response->body()));
+
+                                $graph = (new \App\Services\OpenGraph)->parse($ogTag);
+
+                                $this->article->create([
+                                    'id' => $id,
+                                    'media_id' => $media->id,
+                                    'article_owner_id' => $node['bloggername'],
+                                    'platform' => PlatformEnum::NAVERBLOG,
+                                    'url' => $node['link'],
+                                    'type' => ArticleType::KEYWORD,
+                                    'keyword' => $keyword,
+                                    'title' => str_replace('&quot;', '"', strip_tags($node['title'])),
+                                    'contents' => str_replace('&quot;', '"', strip_tags($node['description'])),
+                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($graph->image, date('Y') . '/images'),
+                                    'thumbnail_url' => $graph->image,
+                                    'thumbnail_width' => 0,
+                                    'thumbnail_height' => 0,
+                                    'state' => 0,
+                                    'date' => Carbon::parse($node['postdate'])->format('Y-m-d H:i:s'),
+                                    'has_media' => $has_media,
+                                ]);
+                            }
+
+                            // 수집 정보 게시자 저장
+                            $this->articleOwner->updateOrCreate(
+                                [
+                                    'id' => $node['bloggername'],
+                                    'platform' => PlatformEnum::NAVERBLOG
+                                ],
+                                [
+                                    'name' => $node['bloggername']
+                                ]
+                            );
+
+                            // 썸네일 및 미디어 저장
+                            $i++;
+                            sleep(1);
+                        } catch (\Exception $e) {
+                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+                        }
+                    }
+                    $this->info($i . ':' . $node['link']);
+                    $this->info($keyword);
+                } while ($i < 10000);
             }
         }
     }

@@ -128,9 +128,11 @@ class Instagram extends Command
                     foreach ($nodes as $node) {
                         try {
 
-                            if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node->getUrl()) {
-                                $this->info('stop!!!');
-                                break 2;
+                            if($lastRow) {
+                                if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node->getUrl()) {
+                                    $this->info('stop!!!');
+                                    break 2;
+                                }
                             }
 
                             $article = $this->article->where([

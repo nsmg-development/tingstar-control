@@ -10,7 +10,8 @@ class NaverBlogService
     protected string $url = "https://openapi.naver.com/v1/search/blog.json?";
     protected string $clientId = "_u0C7VkMSrTmUVhjTkB8";
     protected string $clientSecret = "LSdtehsW8d";
-    protected int $display = 10;
+    protected int $display = 100;
+    protected int $start = 1000;
     protected string $sort = "date";
 
     public function getNaverBlog(string $keyword): array
@@ -21,10 +22,9 @@ class NaverBlogService
         ])->get($this->url, [
             'query' => $keyword,
             'display' => $this->display,
-            'sort' => $this->sort
+            'sort' => $this->sort,
+            'start' => $this->start,
         ]);
         return $response->json();
-        // $response = Http::get('https://blog.naver.com/mi898898');
-        // dd($response->body());
     }
 }
