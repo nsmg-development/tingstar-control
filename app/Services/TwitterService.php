@@ -25,7 +25,7 @@ class TwitterService
             TwitterContract::KEY_RESPONSE_FORMAT => TwitterContract::RESPONSE_FORMAT_JSON,
         ];
 
-        $arr = $this->decodeRawBodyToJson(Twitter::searchRecent('강아지' . ' -is:retweet', $params));
+        $arr = $this->decodeRawBodyToJson(Twitter::searchRecent($keyword . ' -is:retweet', $params));
         $medias = [];
         $hasNextPage = false;
         $toReturn = [

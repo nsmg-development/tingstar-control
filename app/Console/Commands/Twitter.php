@@ -107,10 +107,11 @@ class Twitter extends Command
 
                     foreach ($nodes as $node) {
                         try {
-
-                            if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $this->twitterUrl . $node->getMediaId()) {
-                                $this->info('stop!!!');
-                                break 2;
+                            if($lastRow) {
+                                if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $this->twitterUrl . $node->getMediaId()) {
+                                    $this->info('stop!!!');
+                                    break 2;
+                                }
                             }
 
                             $article = $this->article->where([
@@ -184,7 +185,7 @@ class Twitter extends Command
                                 );
                             }
                             $i++;
-                            sleep(1);
+                            sleep(5);
                         } catch (\Exception $e) {
                             Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
@@ -195,7 +196,7 @@ class Twitter extends Command
                     $this->info($i . ':' . $this->twitterUrl . $node->getMediaId());
                     $this->info($keyword);
                     $this->info($this->nextPageToken);
-                } while ($i < 10000);
+                } while ($i < 9000);
             }
         }
         return true;
