@@ -43,6 +43,7 @@ class NaverBlog extends Command
     protected string $nextPageToken;
     protected NaverBlogService $naverBlogService;
     protected string $baseUrl = "https://blog.naver.com";
+    protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     /**
      * Create a new command instance.
@@ -105,7 +106,7 @@ class NaverBlog extends Command
                             if ($lastRow) {
                                 if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node['link']) {
                                     $this->info('stop!!!');
-                                    break 2;
+                                    break;
                                 }
                             }
 
@@ -138,7 +139,20 @@ class NaverBlog extends Command
                                 $response = Http::get($url);
                                 $ogTag = trim(preg_replace('/\r|\n|\r\n|\t/i', ' ', $response->body()));
 
-                                $graph = (new \App\Services\OpenGraph)->parse($ogTag);
+                                $graph = (new OpenGraph)->parse($ogTag);
+
+                                if($graph->image) {
+                                    $thumbnail = $this->azureService->AzureUploadImage($graph->image, date('Y') . '/images');
+                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                    $width = $size[0];
+                                    $height = $size[1];
+                                    $mime = $size['mime'];
+                                } else {
+                                    $thumbnail = null;
+                                    $width = 0;
+                                    $height = 0;
+                                    $mime = null;
+                                }
 
                                 $this->article->create([
                                     'id' => $id,
@@ -150,10 +164,11 @@ class NaverBlog extends Command
                                     'keyword' => $keyword,
                                     'title' => str_replace('&quot;', '"', strip_tags($node['title'])),
                                     'contents' => str_replace('&quot;', '"', strip_tags($node['description'])),
-                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($graph->image, date('Y') . '/images'),
-                                    'thumbnail_url' => $graph->image,
-                                    'thumbnail_width' => 0,
-                                    'thumbnail_height' => 0,
+                                    'storage_thumbnail_url' => $thumbnail,
+                                    'thumbnail_url' => $graph->image ?? null,
+                                    'thumbnail_width' => $width,
+                                    'thumbnail_height' => $height,
+                                    'mime' => $mime,
                                     'state' => 0,
                                     'date' => Carbon::parse($node['postdate'])->format('Y-m-d H:i:s'),
                                     'has_media' => $has_media,
@@ -171,7 +186,6 @@ class NaverBlog extends Command
                                 ]
                             );
 
-                            // 썸네일 및 미디어 저장
                             $i++;
                             sleep(1);
                         } catch (\Exception $e) {

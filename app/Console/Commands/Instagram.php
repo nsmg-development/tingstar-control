@@ -42,6 +42,7 @@ class Instagram extends Command
     protected Media $media;
     protected ArticleOwner $articleOwner;
     protected string $maxId = '';
+    protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     /**
      * Create a new command instance.
@@ -159,8 +160,8 @@ class Instagram extends Command
                                     'keyword' => $keyword,
                                     'title' => '',
                                     'contents' => $node->getCaption(),
-                                    'thumbnail_url' => '',
-                                    'storage_thumbnail_url' => '',
+                                    'thumbnail_url' => null,
+                                    'storage_thumbnail_url' => null,
                                     'hashtag' => $node->getHashTag(),
                                     'state' => 0,
                                     'date' => $date,
@@ -179,13 +180,21 @@ class Instagram extends Command
                                 );
 
                                 if ($node->getImageUrl()) {
+
+                                    $thumbnail = $this->azureService->AzureUploadImage($node->getImageUrl(), date('Y') . '/images');
+                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                    $width = $size[0];
+                                    $height = $size[1];
+                                    $mime = $size['mime'];
+
                                     $this->articleMedia->create([
                                         'article_id' => $id,
                                         'type' => ArticleMediaType::IMAGE,
-                                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageUrl(), date('Y') . '/images'),
-                                        'url' => $node->getImageUrl(),
-                                        'width' => $node->getImageWidth(),
-                                        'height' => $node->getImageHeight(),
+                                        'storage_url' => $thumbnail,
+                                        'url' => $node->getImageUrl() ?? null,
+                                        'width' => $width,
+                                        'height' => $height,
+                                        'mime' => $mime
                                     ]);
                                 }
                             }

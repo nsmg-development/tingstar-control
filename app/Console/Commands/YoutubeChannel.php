@@ -41,6 +41,7 @@ class YoutubeChannel extends Command
     protected Media $media;
     protected ArticleOwner $articleOwner;
     protected string $nextPageToken;
+    protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     /**
      * Create a new command instance.
@@ -129,6 +130,19 @@ class YoutubeChannel extends Command
                                     $has_media = true;
                                 }
 
+                                if($node->getThumbnailsUrl()) {
+                                    $thumbnail = $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images');
+                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                    $width = $size[0];
+                                    $height = $size[1];
+                                    $mime = $size['mime'];
+                                } else {
+                                    $thumbnail = null;
+                                    $width = 0;
+                                    $height = 0;
+                                    $mime = null;
+                                }
+
                                 $article = $this->article->create([
                                     'id' => $id,
                                     'media_id' => $media->id,
@@ -139,10 +153,11 @@ class YoutubeChannel extends Command
                                     'channel' => $channel,
                                     'title' => $node->getTitle(),
                                     'contents' => $node->getDescription(),
-                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getThumbnailsUrl(), date('Y') . '/images'),
-                                    'thumbnail_url' => $node->getThumbnailsUrl(),
-                                    'thumbnail_width' => $node->getThumbnailWidth(),
-                                    'thumbnail_height' => $node->getThumbnailHeight(),
+                                    'storage_thumbnail_url' => $thumbnail,
+                                    'thumbnail_url' => $node->getThumbnailsUrl() ?? null,
+                                    'thumbnail_width' => $width,
+                                    'thumbnail_height' => $height,
+                                    'mime' => $mime,
                                     'state' => 0,
                                     'date' => $date,
                                     'has_media' => $has_media
