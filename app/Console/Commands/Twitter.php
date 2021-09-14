@@ -42,6 +42,7 @@ class Twitter extends Command
     protected TwitterService $twitterService;
     protected string $nextPageToken;
     protected string $twitterUrl = "https://twitter.com/yunorno/status/";
+    protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     /**
      * Create a new command instance.
@@ -107,7 +108,7 @@ class Twitter extends Command
 
                     foreach ($nodes as $node) {
                         try {
-                            if($lastRow) {
+                            if ($lastRow) {
                                 if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $this->twitterUrl . $node->getMediaId()) {
                                     $this->info('stop!!!');
                                     break 2;
@@ -139,8 +140,8 @@ class Twitter extends Command
                                     'keyword' => $keyword,
                                     'title' => '',
                                     'contents' => $node->getDescription(),
-                                    'storage_thumbnail_url' => '',
-                                    'thumbnail_url' => '',
+                                    'storage_thumbnail_url' => null,
+                                    'thumbnail_url' => null,
                                     'thumbnail_width' => 0,
                                     'thumbnail_height' => 0,
                                     'state' => 0,
@@ -149,13 +150,21 @@ class Twitter extends Command
                                 ]);
 
                                 if ($node->getThumbnailUrl()) {
+
+                                    $thumbnail = $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images');
+                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                    $width = $size[0];
+                                    $height = $size[1];
+                                    $mime = $size['mime'];
+
                                     $this->articleMedia->create([
                                         'article_id' => $article->id,
                                         'type' => ArticleMediaType::IMAGE,
-                                        'storage_url' => $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images'),
+                                        'storage_url' => $thumbnail,
                                         'url' => $node->getThumbnailUrl(),
-                                        'width' => $node->getThumbnailWidth(),
-                                        'height' => $node->getThumbnailHeight(),
+                                        'width' => $width,
+                                        'height' => $height,
+                                        'mime' => $mime
                                     ]);
                                 }
 
@@ -177,8 +186,8 @@ class Twitter extends Command
                                     [
                                         'name' => $node->getOwnerName(),
                                         'url' => $node->getOwnerPageUrl(),
-                                        'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), date('Y') . '/images'),
-                                        'thumbnail_url' => $node->getOwnerImageUrl(),
+                                        'storage_thumbnail_url' => $node->getOwnerImageUrl() ? $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), date('Y') . '/images') : null,
+                                        'thumbnail_url' => $node->getOwnerImageUrl() ?? null,
                                         'thumbnail_width' => 0,
                                         'thumbnail_height' => 0,
                                     ]

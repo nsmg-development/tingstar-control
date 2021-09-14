@@ -24,9 +24,12 @@ class InstagramService
     protected AzureService $azureService;
 
     protected PlatformAccount $platformAccount;
+
     protected string $maxId = '';
 
     private string $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36';
+
+    protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     public function __construct(
         AzureService    $azureService,
@@ -298,13 +301,21 @@ class InstagramService
     public function getArticleMedias(int $articleId, string $type, $node): array
     {
         if ($type === 'image') {
+
+            $thumbnail = $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/images');
+            $size = getimagesize($this->storageBaseUrl . $thumbnail);
+            $width = $size[0];
+            $height = $size[1];
+            $mime = $size['mime'];
+
             return [
                 'article_id' => $articleId,
                 'type' => ArticleMediaType::IMAGE,
-                'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/images'),
-                'url' => $node->getImageStandardResolution()['url'],
-                'width' => $node->getImageStandardResolution()['width'],
-                'height' => $node->getImageStandardResolution()['height'],
+                'storage_url' => $thumbnail,
+                'url' => $node->getImageStandardResolution()['url'] ?? null,
+                'width' => $width,
+                'height' => $height,
+                'mime' => $mime,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ];
@@ -326,13 +337,21 @@ class InstagramService
             $result = [];
             foreach ($node->getSidecarMedias() as $media) {
                 if ($media->getType() === 'image') {
+
+                    $thumbnail = $this->azureService->AzureUploadImage($media->getImageStandardResolution()['url'], date('Y') . '/images');
+                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                    $width = $size[0];
+                    $height = $size[1];
+                    $mime = $size['mime'];
+
                     array_push($result, [
                         'article_id' => $articleId,
                         'type' => ArticleMediaType::IMAGE,
-                        'storage_url' => $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/images'),
-                        'url' => $media->getImageStandardResolution()['url'],
-                        'width' => $media->getImageStandardResolution()['width'],
-                        'height' => $media->getImageStandardResolution()['height'],
+                        'storage_url' => $thumbnail,
+                        'url' => $media->getImageStandardResolution()['url'] ?? null,
+                        'width' => $width,
+                        'height' => $height,
+                        'mime' => $mime,
                         'created_at' => Carbon::now(),
                         'updated_at' => Carbon::now(),
                     ]);

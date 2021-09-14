@@ -40,8 +40,8 @@ class InstagramChannel extends Command
     protected ArticleMedia $articleMedia;
     protected ArticleOwner $articleOwner;
     protected Media $media;
-
     protected string $maxId = '';
+    protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     /**
      * Create a new command instance.
@@ -145,6 +145,19 @@ class InstagramChannel extends Command
                                     $has_media = true;
                                 }
 
+                                if($node->getImageThumbnail()['url']) {
+                                    $thumbnail = $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], date('Y') . '/images');
+                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                    $width = $size[0];
+                                    $height = $size[1];
+                                    $mime = $size['mime'];
+                                } else {
+                                    $thumbnail = null;
+                                    $width = 0;
+                                    $height = 0;
+                                    $mime = null;
+                                }
+
                                 // 수집 정보 저장
                                 $article = $this->article->create([
                                     'id' => $id,
@@ -156,10 +169,11 @@ class InstagramChannel extends Command
                                     'channel' => $channel,
                                     'title' => '',
                                     'contents' => $node->getCaption(),
-                                    'storage_thumbnail_url' => $this->azureService->AzureUploadImage($node->getImageThumbnail()['url'], date('Y') . '/images'),
-                                    'thumbnail_url' => $node->getImageThumbnail()['url'],
-                                    'thumbnail_width' => $node->getImageThumbnail()['width'],
-                                    'thumbnail_height' => $node->getImageThumbnail()['height'],
+                                    'storage_thumbnail_url' => $thumbnail,
+                                    'thumbnail_url' => $node->getImageThumbnail()['url'] ?? null,
+                                    'thumbnail_width' => $width,
+                                    'thumbnail_height' => $height,
+                                    'mime' => $mime,
                                     'hashtag' => $node->getHashTag(),
                                     'state' => 0,
                                     'date' => $date,
