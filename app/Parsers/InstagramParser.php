@@ -12,7 +12,7 @@ class InstagramParser
     protected string $id = '';
     protected string $url = '';
     protected string $thumbnails = '';
-    protected string $imageUrl = '';
+    protected array $imageUrl;
     protected int $imageWidth = 0;
     protected int $imageHeight = 0;
 
@@ -27,9 +27,14 @@ class InstagramParser
         $this->likesCount = $media->like_count;
         $this->id = $media->id;
         $this->url = "https://www.instagram.com/p/$media->code";
-        $this->imageUrl = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['url'] : '';
-        $this->imageWidth = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['height'] : 0;
-        $this->imageHeight = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['height'] : 0;
+        if($media->carousel_media) {
+            $this->imageUrl = $media->carousel_media;
+        }
+
+        // $this->imageUrl = $file->image_versions2['candidates'][0]['url'];
+        // $this->imageUrl = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['url'] : '';
+        // $this->imageWidth = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['height'] : 0;
+        // $this->imageHeight = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['height'] : 0;
         // $this->thumbnails = $media->thumbnails;
     }
 
@@ -121,9 +126,9 @@ class InstagramParser
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function getImageUrl(): string
+    public function getImageUrl(): array
     {
         return $this->imageUrl;
     }

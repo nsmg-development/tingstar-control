@@ -115,7 +115,6 @@ class Instagram extends Command
                 $i = 0;
                 do {
                     $scraped = $this->instagramService->requestInstagramByKeyword($headers, $keyword, $this->maxId);
-
                     $result = $this->instagramService->getInstagramByKeyword($keyword, $scraped);
 
                     if (count($result) === 0) {
@@ -129,7 +128,7 @@ class Instagram extends Command
                     foreach ($nodes as $node) {
                         try {
 
-                            if($lastRow) {
+                            if ($lastRow) {
                                 if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $node->getUrl()) {
                                     $this->info('stop!!!');
                                     break 2;
@@ -178,27 +177,32 @@ class Instagram extends Command
                                         'name' => $node->getOwnerName(),
                                     ]
                                 );
-
                                 if ($node->getImageUrl()) {
+                                    foreach ($node->getImageUrl() as $value) {
+                                        if ($node->getId() === $value['carousel_parent_id']) {
+                                            $img = $value['image_versions2']['candidates'][0]['url'];
 
-                                    $thumbnail = $this->azureService->AzureUploadImage($node->getImageUrl(), date('Y') . '/images');
-                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
-                                    $width = $size[0];
-                                    $height = $size[1];
-                                    $mime = $size['mime'];
+                                            $thumbnail = $this->azureService->AzureUploadImage($img, date('Y') . '/images');
+                                            $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                            $width = $size[0];
+                                            $height = $size[1];
+                                            $mime = $size['mime'];
 
-                                    $this->articleMedia->create([
-                                        'article_id' => $id,
-                                        'type' => ArticleMediaType::IMAGE,
-                                        'storage_url' => $thumbnail,
-                                        'url' => $node->getImageUrl() ?? null,
-                                        'width' => $width,
-                                        'height' => $height,
-                                        'mime' => $mime
-                                    ]);
+                                            $this->articleMedia->create([
+                                                'article_id' => $id,
+                                                'type' => ArticleMediaType::IMAGE,
+                                                'storage_url' => $thumbnail,
+                                                'url' => $img ?? null,
+                                                'width' => $width,
+                                                'height' => $height,
+                                                'mime' => $mime
+                                            ]);
+                                        }
+                                    }
                                 }
                             }
                             $i++;
+                            $this->info($i . ':' . $node->getUrl());
                             sleep(1);
                         } catch (\Exception $e) {
                             Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
@@ -207,7 +211,6 @@ class Instagram extends Command
                     if ($this->maxId == '') {
                         break 2;
                     }
-                    $this->info($i . ':' . $node->getUrl());
                     $this->info($keyword);
                     $this->info($this->maxId);
                 } while ($i < 10000);
