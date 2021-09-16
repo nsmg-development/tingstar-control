@@ -149,7 +149,7 @@ class Twitter extends Command
                                     'has_media' => $has_media
                                 ]);
 
-                                if ($node->getThumbnailUrl()) {
+                                if ($node->getMediaType() === 'image' && $node->getThumbnailUrl()) {
 
                                     $thumbnail = $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images');
                                     $size = getimagesize($this->storageBaseUrl . $thumbnail);
@@ -158,7 +158,7 @@ class Twitter extends Command
                                     $mime = $size['mime'];
 
                                     $this->articleMedia->create([
-                                        'article_id' => $article->id,
+                                        'article_id' => $id,
                                         'type' => ArticleMediaType::IMAGE,
                                         'storage_url' => $thumbnail,
                                         'url' => $node->getThumbnailUrl(),
@@ -168,7 +168,7 @@ class Twitter extends Command
                                     ]);
                                 }
 
-                                if ($node->getVideoUrl()) {
+                                if ($node->getMediaType() === 'video' && $node->getVideoUrl()) {
                                     $this->articleMedia->create([
                                         'article_id' => $article->id,
                                         'type' => ArticleMediaType::VIDEO,
