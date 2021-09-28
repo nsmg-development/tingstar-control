@@ -42,6 +42,7 @@ class InstagramChannel extends Command
     protected Media $media;
     protected string $maxId = '';
     protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
+    protected string $baseUrl = "https://www.instagram.com/";
 
     /**
      * Create a new command instance.
@@ -180,6 +181,13 @@ class InstagramChannel extends Command
                                     'has_media' => $has_media
                                 ]);
 
+                                // if ($node->getProfilePicUrl()) {
+                                //     $thumbnail = $this->azureService->AzureUploadImage($node->getProfilePicUrl(), date('Y') . '/images');
+                                //     $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                //     $width = $size[0];
+                                //     $height = $size[1];
+                                // }
+
                                 // 수집 정보 게시자 저장
                                 $this->articleOwner->updateOrCreate(
                                     [
@@ -187,7 +195,12 @@ class InstagramChannel extends Command
                                         'platform' => PlatformEnum::INSTAGRAM
                                     ],
                                     [
-                                        'name' => $node->getOwner()['username']
+                                        'name' => $node->getOwner()['username'],
+                                        'url' => $this->baseUrl . $node->getOwner()['username'],
+                                        // 'storage_thumbnail_url' => $thumbnail ?? null,
+                                        // 'thumbnail_url' => $node->getProfilePicUrl() ?? null,
+                                        // 'thumbnail_width' => $width ?? 0,
+                                        // 'thumbnail_height' => $height ?? 0,
                                     ]
                                 );
 

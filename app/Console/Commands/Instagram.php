@@ -167,6 +167,14 @@ class Instagram extends Command
                                     'has_media' => $has_media
                                 ]);
 
+
+                                if ($node->getUserThumbnail()) {
+                                    $thumbnail = $this->azureService->AzureUploadImage($node->getUserThumbnail(), date('Y') . '/images');
+                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                    $width = $size[0];
+                                    $height = $size[1];
+                                }
+
                                 // 수집 정보 게시자 저장
                                 $this->articleOwner->updateOrCreate(
                                     [
@@ -174,9 +182,15 @@ class Instagram extends Command
                                         'platform' => PlatformEnum::INSTAGRAM
                                     ],
                                     [
+                                        'url' => $node->getUserUrl(),
                                         'name' => $node->getOwnerName(),
+                                        'storage_thumbnail_url' => $thumbnail ?? null,
+                                        'thumbnail_url' => $node->getUserThumbnail() ?? null,
+                                        'thumbnail_width' => $width ?? 0,
+                                        'thumbnail_height' => $height ?? 0,
                                     ]
                                 );
+
                                 if ($node->getImageUrl()) {
                                     foreach ($node->getImageUrl() as $value) {
                                         if ($node->getId() === $value['carousel_parent_id']) {

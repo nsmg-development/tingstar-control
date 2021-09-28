@@ -36,42 +36,48 @@ class TwitterService
         if (empty($arr['meta']['result_count'])) {
             return $toReturn;
         }
-
-        $sections = $arr['data'];
-        $sectionUsers = $arr['includes']['users'];
-        $sectionMedias = $arr['includes']['media'] ?? '';
-        if (empty($sections)) {
-            return $toReturn;
-        }
-        foreach ($sections as $section_index => $section) {
-            foreach ($sectionUsers as $section_user_index => $user) {
-                if ($sectionMedias) {
-                    foreach ($sectionMedias as $section_media_index => $media) {
-                        try {
-                            if ($section_index === $section_user_index) {
-                                if (isset($section['attachments']['media_keys'])) {
-                                    foreach ($section['attachments']['media_keys'] as $media_key) {
-                                        if ($media_key === $media['media_key']) {
-                                            $medias[] = new TwitterParser((object)$section, (object)$user, (object)$media);
-                                        }
-                                    }
-                                } else {
-                                    $medias[] = new TwitterParser((object)$section, (object)$user, '');
-                                }
-                            }
-                        } catch (\Exception $e) {
-                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
-                        }
-                    }
-                }
-            }
-        }
-        $hasNextPage = $arr['meta']['next_token'];
-        $count = $arr['meta']['result_count'];
+        $medias = $arr;
+        // $sections = $arr['data'];
+        // $sectionUsers = $arr['includes']['users'];
+        // $sectionMedias = $arr['includes']['media'] ?? '';
+        // if (empty($sections)) {
+        //     return $toReturn;
+        // }
+        // foreach ($sections as $section_index => $section) {
+        //     foreach ($sectionUsers as $section_user_index => $user) {
+        //         if ($sectionMedias) {
+        //             // foreach ($sectionMedias as $section_media_index => $media) {
+        //             try {
+        //                 // if ($section_index === $section_user_index) {
+        //                 //     if (isset($section['attachments']['media_keys'])) {
+        //                 //         foreach ($section['attachments']['media_keys'] as $media_key) {
+        //                 //             if ($media_key === $media['media_key']) {
+        //                 $medias[] = new TwitterParser((object)$section, (object)$user, (object)$sectionMedias);
+        //                 //             }
+        //                 //         }
+        //                 // } else {
+        //                 //
+        //                 // }
+        //                 // }
+        //             } catch (\Exception $e) {
+        //                 Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+        //             }
+        //             // }
+        //         } else {
+        //             try {
+        //                 $medias[] = new TwitterParser((object)$section, (object)$user, '');
+        //             } catch (\Exception $e) {
+        //                 Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
+        //             }
+        //         }
+        //     }
+        // }
+        // $hasNextPage = $arr['meta']['next_token'];
+        // $count = $arr['meta']['result_count'];
         return [
             'medias' => $medias,
-            'count' => $count,
-            'nextPageToken' => $hasNextPage,
+            // 'count' => $count,
+            // 'nextPageToken' => $hasNextPage,
         ];
     }
 

@@ -42,6 +42,7 @@ class Twitter extends Command
     protected TwitterService $twitterService;
     protected string $nextPageToken;
     protected string $twitterUrl = "https://twitter.com/yunorno/status/";
+    protected string $ownerUrl = "https://twitter.com/";
     protected string $storageBaseUrl = "https://chuncheon.blob.core.windows.net/chuncheon/";
 
     /**
@@ -98,111 +99,137 @@ class Twitter extends Command
                 $i = 0;
                 do {
                     $result = $this->twitterService->getTwitter($keyword);
+
                     // 유튜브 데이터 없는 경우 오류 출력
                     if (count($result) === 0) {
                         Log::error('no data!');
                         break;
                     }
-                    $this->nextPageToken = $result['nextPageToken'];
-                    $nodes = $result['medias'];
+
+                    $this->nextPageToken = $result['medias']['meta']['next_token'];
+
+                    $nodes = $result['medias']['data'];
+                    $users = $result['medias']['includes']['users'];
+                    $files = $result['medias']['includes']['media'];
 
                     foreach ($nodes as $node) {
-                        try {
-                            if ($lastRow) {
-                                if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $this->twitterUrl . $node->getMediaId()) {
-                                    $this->info('stop!!!');
-                                    break 2;
-                                }
-                            }
-
-                            $article = $this->article->where([
-                                'media_id' => $media->id,
-                                'url' => $this->twitterUrl . $node->getMediaId()
-                            ])->first();
-
-                            if (!$article) {
-
-                                $date = Carbon::parse($node->getDate())->format('Y-m-d H:i:s');
-                                $id = Carbon::parse($date)->getTimestamp() * -1;
-                                $has_media = false;
-
-                                if (ArticleMediaType::isValidValue($node->getMediaType())) {
-                                    $has_media = true;
+                        foreach ($users as $user) {
+                            try {
+                                if ($lastRow) {
+                                    if ($lastRow->media_id === $media->id && $lastRow->keyword === $keyword && $lastRow->url === $this->twitterUrl . $node['id']) {
+                                        $this->info('stop!!!');
+                                        break 2;
+                                    }
                                 }
 
-                                $article = $this->article->create([
-                                    'id' => $id,
+                                $article = $this->article->where([
                                     'media_id' => $media->id,
-                                    'article_owner_id' => $node->getOwnerId(),
-                                    'platform' => PlatformEnum::TWITTER,
-                                    'url' => $this->twitterUrl . $node->getMediaId(),
-                                    'type' => ArticleType::KEYWORD,
-                                    'keyword' => $keyword,
-                                    'title' => '',
-                                    'contents' => $node->getDescription(),
-                                    'storage_thumbnail_url' => null,
-                                    'thumbnail_url' => null,
-                                    'thumbnail_width' => 0,
-                                    'thumbnail_height' => 0,
-                                    'state' => 0,
-                                    'date' => $date,
-                                    'has_media' => $has_media
-                                ]);
+                                    'url' => $this->twitterUrl . $node['id']
+                                ])->first();
 
-                                if ($node->getMediaType() === 'image' && $node->getThumbnailUrl()) {
+                                if (!$article) {
 
-                                    $thumbnail = $this->azureService->AzureUploadImage($node->getThumbnailUrl(), date('Y') . '/images');
-                                    $size = getimagesize($this->storageBaseUrl . $thumbnail);
-                                    $width = $size[0];
-                                    $height = $size[1];
-                                    $mime = $size['mime'];
+                                    $date = Carbon::parse($node['created_at'])->format('Y-m-d H:i:s');
+                                    $id = Carbon::parse($date)->getTimestamp() * -1;
+                                    $has_media = false;
 
-                                    $this->articleMedia->create([
-                                        'article_id' => $id,
-                                        'type' => ArticleMediaType::IMAGE,
-                                        'storage_url' => $thumbnail,
-                                        'url' => $node->getThumbnailUrl(),
-                                        'width' => $width,
-                                        'height' => $height,
-                                        'mime' => $mime
+                                    if (isset($node['attachments']['media_keys'])) {
+                                        $has_media = true;
+                                    }
+
+                                    $article = $this->article->create([
+                                        'id' => $id,
+                                        'media_id' => $media->id,
+                                        'article_owner_id' => $user['id'],
+                                        'platform' => PlatformEnum::TWITTER,
+                                        'url' => $this->twitterUrl . $node['id'],
+                                        'type' => ArticleType::KEYWORD,
+                                        'keyword' => $keyword,
+                                        'title' => '',
+                                        'contents' => $node['text'],
+                                        'storage_thumbnail_url' => null,
+                                        'thumbnail_url' => null,
+                                        'thumbnail_width' => null,
+                                        'thumbnail_height' => null,
+                                        'state' => 0,
+                                        'date' => $date,
+                                        'has_media' => $has_media
                                     ]);
-                                }
 
-                                if ($node->getMediaType() === 'video' && $node->getVideoUrl()) {
-                                    $this->articleMedia->create([
-                                        'article_id' => $article->id,
-                                        'type' => ArticleMediaType::VIDEO,
-                                        'url' => $node->getVideoUrl(),
-                                        'width' => $node->getThumbnailWidth(),
-                                        'height' => $node->getThumbnailHeight(),
-                                    ]);
+                                    // 수집 정보 게시자 저장
+
+                                    if ($node['author_id'] === $user['id']) {
+
+                                        if ($user['profile_image_url']) {
+                                            $thumbnail = $this->azureService->AzureUploadImage($user['profile_image_url'], date('Y') . '/images');
+                                            $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                            $width = $size[0];
+                                            $height = $size[1];
+                                        }
+
+                                        $this->articleOwner->updateOrCreate(
+                                            [
+                                                'id' => (string)$user['id'],
+                                                'platform' => PlatformEnum::TWITTER
+                                            ],
+                                            [
+                                                'name' => $user['username'],
+                                                'url' => $this->ownerUrl . $user['username'],
+                                                'storage_thumbnail_url' => $thumbnail ?? null,
+                                                'thumbnail_url' => $user['profile_image_url'] ?? null,
+                                                'thumbnail_width' => $width ?? null,
+                                                'thumbnail_height' => $height ?? null,
+                                            ]
+                                        );
+                                    }
+
+                                    if (isset($node['attachments']['media_keys'])) {
+                                        foreach ($node['attachments']['media_keys'] as $media_key) {
+                                            foreach ($files as $media) {
+                                                if ($media_key === $media['media_key']) {
+                                                    if ($media['type'] === 'photo') {
+                                                        $thumbnail = $this->azureService->AzureUploadImage($media['url'], date('Y') . '/images');
+                                                        $size = getimagesize($this->storageBaseUrl . $thumbnail);
+                                                        $width = $size[0];
+                                                        $height = $size[1];
+                                                        $mime = $size['mime'];
+
+                                                        $this->articleMedia->create([
+                                                            'article_id' => $id,
+                                                            'type' => ArticleMediaType::IMAGE,
+                                                            'storage_url' => $thumbnail,
+                                                            'url' => $media['url'],
+                                                            'width' => $width,
+                                                            'height' => $height,
+                                                            'mime' => $mime
+                                                        ]);
+                                                    }
+
+                                                    if ($media['type'] === 'video') {
+                                                        $this->articleMedia->create([
+                                                            'article_id' => $id,
+                                                            'type' => ArticleMediaType::VIDEO,
+                                                            'url' => $media['url'],
+                                                            'width' => $media['width'],
+                                                            'height' => $media['height'],
+                                                        ]);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                                // 수집 정보 게시자 저장
-                                $this->articleOwner->updateOrCreate(
-                                    [
-                                        'id' => (string)$node->getOwnerId(),
-                                        'platform' => PlatformEnum::TWITTER
-                                    ],
-                                    [
-                                        'name' => $node->getOwnerName(),
-                                        'url' => $node->getOwnerPageUrl(),
-                                        'storage_thumbnail_url' => $node->getOwnerImageUrl() ? $this->azureService->AzureUploadImage($node->getOwnerImageUrl(), date('Y') . '/images') : null,
-                                        'thumbnail_url' => $node->getOwnerImageUrl() ?? null,
-                                        'thumbnail_width' => 0,
-                                        'thumbnail_height' => 0,
-                                    ]
-                                );
+                                $i++;
+                                $this->info($i . ':' . $this->twitterUrl . $node['id']);
+                                sleep(5);
+                            } catch (\Exception $e) {
+                                Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                             }
-                            $i++;
-                            sleep(5);
-                        } catch (\Exception $e) {
-                            Log::error(sprintf('[%s:%d] %s', __FILE__, $e->getLine(), $e->getMessage()));
                         }
                     }
                     if ($this->nextPageToken == '') {
                         break 2;
                     }
-                    $this->info($i . ':' . $this->twitterUrl . $node->getMediaId());
                     $this->info($keyword);
                     $this->info($this->nextPageToken);
                 } while ($i < 9000);
