@@ -17,9 +17,13 @@ class TwitterParser
     protected string $ownerImageUrl = '';
     protected string $ownerPageUrl = '';
     protected string $twitterUrl = 'https://twitter.com/';
+    protected array $mediaKeys = [];
+    protected array $medias = [];
 
     public function __construct($media, $user, $file)
     {
+
+
         $this->mediaId = $media->id;
         $this->date = $media->created_at;
         $this->description = $media->text;
@@ -32,7 +36,10 @@ class TwitterParser
         $this->thumbnailWidth = $file->width ?? 0;
         $this->thumbnailHeight = $file->height ?? 0;
         $this->videoUrl = $file->url ?? '';
-
+        if($media->attachments) {
+            $this->mediaKeys = $media->attachments['media_keys'];
+            $this->medias = (array)$file;
+        }
     }
 
     /**
@@ -99,5 +106,15 @@ class TwitterParser
     public function getVideoUrl(): string
     {
         return $this->videoUrl;
+    }
+
+    public function getMediaKeys(): array
+    {
+        return $this->mediaKeys;
+    }
+
+    public function getMedias(): array
+    {
+        return $this->medias;
     }
 }

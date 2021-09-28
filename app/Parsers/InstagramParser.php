@@ -2,6 +2,8 @@
 
 namespace App\Parsers;
 
+use stringEncode\Exception;
+
 class InstagramParser
 {
     protected int $created_at = 0;
@@ -10,8 +12,11 @@ class InstagramParser
     protected string $ownerName = '';
     protected int $likesCount = 0;
     protected string $id = '';
+    protected string $baseUrl = "https://www.instagram.com/";
     protected string $url = '';
+    protected string $userUrl = '';
     protected string $thumbnails = '';
+    protected string $userThumbnail = '';
     protected array $imageUrl;
     protected int $imageWidth = 0;
     protected int $imageHeight = 0;
@@ -19,23 +24,19 @@ class InstagramParser
 
     public function __construct($media)
     {
-
         $this->created_at = $media->taken_at;
         $this->caption = $media->caption['text'];
         $this->ownerId = $media->user['pk'];
         $this->ownerName = $media->user['username'];
+        $this->userThumbnail = $media->user['profile_pic_url'] ?? null;
         $this->likesCount = $media->like_count;
         $this->id = $media->id;
-        $this->url = "https://www.instagram.com/p/$media->code";
-        if($media->carousel_media) {
+        $this->url = $this->baseUrl . 'p/' . $media->code;
+        $this->userUrl = $this->baseUrl . $media->user['username'];
+
+        if ($media->carousel_media) {
             $this->imageUrl = $media->carousel_media;
         }
-
-        // $this->imageUrl = $file->image_versions2['candidates'][0]['url'];
-        // $this->imageUrl = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['url'] : '';
-        // $this->imageWidth = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['height'] : 0;
-        // $this->imageHeight = (isset($media->carousel_media)) ? $media->carousel_media[0]['image_versions2']['candidates'][0]['height'] : 0;
-        // $this->thumbnails = $media->thumbnails;
     }
 
     /**
@@ -149,13 +150,23 @@ class InstagramParser
         return $this->imageHeight;
     }
 
-    public function getOwnerId()
+    public function getOwnerId(): string
     {
         return $this->ownerId;
     }
 
-    public function getOwnerName()
+    public function getOwnerName(): string
     {
         return $this->ownerName;
+    }
+
+    public function getUserThumbnail(): string
+    {
+        return $this->userThumbnail;
+    }
+
+    public function getUserUrl(): string
+    {
+        return $this->userUrl;
     }
 }
