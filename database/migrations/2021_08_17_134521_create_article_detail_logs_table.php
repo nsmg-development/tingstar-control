@@ -15,6 +15,7 @@ class CreateArticleDetailLogsTable extends Migration
     {
         Schema::create('article_detail_logs', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('media_id')->index()->comment('매체 id');
             $table->bigInteger('article_id');
             $table->string('user_id');
             $table->string('type', 20);
