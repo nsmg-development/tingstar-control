@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Media extends Model
 {
-    protected $table = 'medias';
-
     use HasFactory;
+
+    protected $connection = 'curator9-common';
+    protected $table = 'medias';
 
     protected $hidden = [
         'created_at', 'updated_at'
