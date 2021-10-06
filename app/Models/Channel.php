@@ -9,6 +9,8 @@ class Channel extends Model
 {
     use HasFactory;
 
+    protected $connection = 'curator9-common';
+
     protected $hidden = [
         'created_at', 'updated_at'
     ];
