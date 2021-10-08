@@ -235,7 +235,7 @@ class InstagramByKeyword extends Command
                 }
                 $this->info($keyword);
                 $this->info($this->maxId);
-            } while ($i < 10000);
+            } while ($i < 100);
 
             if ($this->argument('jobId')) {
                 $this->commandJob->where('id', $this->argument('jobId'))->delete();
