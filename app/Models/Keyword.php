@@ -9,7 +9,7 @@ class Keyword extends Model
 {
     use HasFactory;
 
-    protected $connection = 'curator9-common';
+    protected $connection = 'curator9-common-tingstar';
 
     protected $hidden = [
         'created_at', 'updated_at'

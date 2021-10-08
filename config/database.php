@@ -114,6 +114,46 @@ return [
             ]) : [],
         ],
 
+        'curator9-tingstar' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => 'dev-mysql-master.mysql.database.azure.com',
+            'port' => '3306',
+            'database' => 'curator9-tingstar',
+            'username' => 'tdi@dev-mysql-master',
+            'password' => 'xleldkdl!@34',
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'curator9-common-tingstar' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => 'dev-mysql-master.mysql.database.azure.com',
+            'port' => '3306',
+            'database' => 'curator9-common-tingstar',
+            'username' => 'tdi@dev-mysql-master',
+            'password' => 'xleldkdl!@34',
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'curator9-common' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),

@@ -9,6 +9,7 @@ class ArticleMedia extends Model
 {
     use HasFactory;
 
+    protected $connection = 'curator9-tingstar';
     protected $table = 'article_medias';
 
     protected $primaryKey = 'article_id';

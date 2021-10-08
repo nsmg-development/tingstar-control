@@ -10,6 +10,8 @@ class Article extends Model
 {
     use HasFactory;
 
+    protected $connection = 'curator9-tingstar';
+
     protected $primaryKey = 'id';
 
     protected $fillable = [

@@ -302,7 +302,7 @@ class InstagramService
     {
         if ($type === 'image') {
 
-            $thumbnail = $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/images');
+            $thumbnail = $this->azureService->AzureUploadImage($node->getImageStandardResolution()['url'], date('Y') . '/tingstar/images');
             $size = getimagesize($this->storageBaseUrl . $thumbnail);
             $width = $size[0];
             $height = $size[1];
