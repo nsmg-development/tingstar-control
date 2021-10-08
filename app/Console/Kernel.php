@@ -25,7 +25,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('command:scrap:all')
+        $schedule->command('command:by:job')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        $schedule->command('scrap:all')
             ->dailyAt('02:00')
             ->withoutOverlapping()
             ->runInBackground();

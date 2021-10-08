@@ -8,6 +8,7 @@ use App\Enums\PlatformEnum;
 use App\Models\Article;
 use App\Models\ArticleMedia;
 use App\Models\ArticleOwner;
+use App\Models\CommandJob;
 use App\Models\Keyword;
 use App\Models\Media;
 use App\Services\AzureService;
@@ -23,7 +24,7 @@ class InstagramByKeyword extends Command
      *
      * @var string
      */
-    protected $signature = 'scrap:instagram:by:keyword {keywordId}';
+    protected $signature = 'scrap:instagram:by:keyword {keywordId} {jobId}';
 
     /**
      * The console command description.
@@ -31,6 +32,8 @@ class InstagramByKeyword extends Command
      * @var string
      */
     protected $description = '인스타그램 크롤링(특정 키워드)';
+
+    protected CommandJob $commandJob;
 
     protected InstagramService $instagramService;
     protected AzureService $azureService;
@@ -48,6 +51,7 @@ class InstagramByKeyword extends Command
      * @return void
      */
     public function __construct(
+        CommandJob       $commandJob,
         InstagramService $instagramService,
         AzureService     $azureService,
         Article          $article,
@@ -58,6 +62,8 @@ class InstagramByKeyword extends Command
     )
     {
         parent::__construct();
+
+        $this->commandJob = $commandJob;
 
         $this->instagramService = $instagramService;
         $this->azureService = $azureService;
@@ -230,6 +236,10 @@ class InstagramByKeyword extends Command
                 $this->info($keyword);
                 $this->info($this->maxId);
             } while ($i < 10000);
+
+            if ($this->argument('jobId')) {
+                $this->commandJob->where('id', $this->argument('jobId'))->delete();
+            }
             // }
         }
         // 계정 사용횟수 업데이트
