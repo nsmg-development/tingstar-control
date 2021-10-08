@@ -195,7 +195,7 @@ class Youtube extends Command
                     $this->info($i . ':' . $node->getUrl());
                     $this->info($keyword);
                     $this->info($this->nextPageToken);
-                } while ($i < 10000);
+                } while ($i < 100);
             }
         }
         return true;

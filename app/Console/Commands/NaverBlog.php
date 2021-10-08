@@ -194,7 +194,7 @@ class NaverBlog extends Command
                     }
                     $this->info($i . ':' . $node['link']);
                     $this->info($keyword);
-                } while ($i < 10000);
+                } while ($i < 100);
             }
         }
     }

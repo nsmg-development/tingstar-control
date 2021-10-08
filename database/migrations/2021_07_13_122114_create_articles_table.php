@@ -39,7 +39,7 @@ class CreateArticlesTable extends Migration
             $table->index(['state', 'media_id']);
         });
 
-        DB::statement('ALTER TABLE articles ADD FULLTEXT INDEX search_contents_hashtag_index(contents, hashtag) WITH PARSER ngram');
+        DB::statement('ALTER TABLE articles ADD FULLTEXT INDEX search_contents_hashtag_index(title, contents, hashtag) WITH PARSER ngram');
     }
 
     /**
