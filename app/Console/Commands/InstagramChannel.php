@@ -221,7 +221,7 @@ class InstagramChannel extends Command
                     $this->info($i . ':' . $node->getLink());
                     $this->info($channel);
                     $this->info($this->maxId);
-                } while ($i < 10000);
+                } while ($i < 100);
             }
         }
         return true;

@@ -227,7 +227,7 @@ class Instagram extends Command
                     }
                     $this->info($keyword);
                     $this->info($this->maxId);
-                } while ($i < 10000);
+                } while ($i < 100);
             }
         }
         // 계정 사용횟수 업데이트
